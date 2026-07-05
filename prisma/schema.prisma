@@ -1,0 +1,322 @@
+// ECE Mastery — database schema
+// SQLite for local-first development; switch provider to "postgresql"
+// and update DATABASE_URL when moving to a hosted multi-user deployment.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Users ----------
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String?  @unique
+  name         String
+  passwordHash String
+  role         String   @default("learner") // learner | teacher | admin
+  settings     String   @default("{}") // JSON blob of user preferences
+  totalXp      Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  attempts       Attempt[]
+  topicProgress  LearnerTopicProgress[]
+  xpEvents       XPEvent[]
+  badges         UserBadge[]
+  quests         UserQuest[]
+  achievements   UserAchievement[]
+  bookmarks      Bookmark[]
+  reports        ReportedProblem[]
+  enrollments    ClassEnrollment[]
+  authoredProblems Problem[] @relation("ProblemAuthor")
+}
+
+// ---------- Curriculum ----------
+
+model Subject {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  description String  @default("")
+  sortOrder   Int     @default(0)
+  topics      Topic[]
+}
+
+model Topic {
+  id               String  @id @default(cuid())
+  subjectId        String
+  parentTopicId    String?
+  slug             String  @unique
+  title            String
+  description      String  @default("")
+  difficultyBand   Int     @default(1) // 1 (intro) .. 5 (advanced)
+  passThreshold    Int     @default(1100)
+  masteryThreshold Int     @default(1300)
+  sortOrder        Int     @default(0)
+
+  subject     Subject @relation(fields: [subjectId], references: [id])
+  parentTopic Topic?  @relation("TopicTree", fields: [parentTopicId], references: [id])
+  children    Topic[] @relation("TopicTree")
+
+  prerequisites  TopicPrerequisite[] @relation("TopicPrereqTopic")
+  prerequisiteOf TopicPrerequisite[] @relation("TopicPrereqRequired")
+  problems       Problem[]
+  progress       LearnerTopicProgress[]
+  assignments    Assignment[]
+}
+
+model TopicPrerequisite {
+  id              String @id @default(cuid())
+  topicId         String
+  requiredTopicId String
+  topic           Topic  @relation("TopicPrereqTopic", fields: [topicId], references: [id])
+  requiredTopic   Topic  @relation("TopicPrereqRequired", fields: [requiredTopicId], references: [id])
+
+  @@unique([topicId, requiredTopicId])
+}
+
+// ---------- Question bank ----------
+
+model Problem {
+  id             String  @id @default(cuid())
+  topicId        String
+  statement      String // markdown + LaTeX ($..$ / $$..$$)
+  imageUrl       String?
+  answerType     String // multiple_choice_single | numerical_tolerance | text_short | algebraic_expression | true_false
+  answerData     String // JSON: correct answer, variants, tolerance, units policy
+  cognitiveLevel String  @default("application") // recall | comprehension | application | analysis | synthesis
+  difficulty     Int     @default(5) // 1..10
+  estimatedTime  Int     @default(120) // seconds
+  hints          String  @default("[]") // JSON array of strings
+  solution       String  @default("")
+  explanation    String  @default("")
+  reference      String  @default("")
+  authorId       String?
+  status         String  @default("active") // draft | reviewed | active | archived
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  topic    Topic           @relation(fields: [topicId], references: [id])
+  author   User?           @relation("ProblemAuthor", fields: [authorId], references: [id])
+  choices  ProblemChoice[]
+  tags     ProblemTag[]
+  attempts Attempt[]
+  bookmarks Bookmark[]
+  reports  ReportedProblem[]
+}
+
+model ProblemChoice {
+  id        String  @id @default(cuid())
+  problemId String
+  label     String // A, B, C, D
+  text      String
+  isCorrect Boolean @default(false)
+  sortOrder Int     @default(0)
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+}
+
+model ProblemTag {
+  id        String  @id @default(cuid())
+  problemId String
+  tag       String
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, tag])
+  @@index([tag])
+}
+
+// ---------- Attempts ----------
+
+model Attempt {
+  id          String   @id @default(cuid())
+  userId      String
+  problemId   String
+  mode        String   @default("adaptive") // adaptive | drill | review | quest | exam
+  result      String // correct_first | correct_second | wrong | gave_up
+  xpAwarded   Int      @default(0)
+  ratingDelta Int      @default(0)
+  timeSpentSec Int     @default(0)
+  needsReview Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user    User            @relation(fields: [userId], references: [id])
+  problem Problem         @relation(fields: [problemId], references: [id])
+  answers AttemptAnswer[]
+
+  @@index([userId, createdAt])
+  @@index([userId, problemId])
+}
+
+model AttemptAnswer {
+  id          String   @id @default(cuid())
+  attemptId   String
+  tryNumber   Int // 1 or 2
+  submitted   String // raw submitted answer (JSON for MC-multiple etc.)
+  isCorrect   Boolean
+  createdAt   DateTime @default(now())
+  attempt     Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Adaptive progress ----------
+
+model LearnerTopicProgress {
+  id               String    @id @default(cuid())
+  userId           String
+  topicId          String
+  rating           Int       @default(1000)
+  confidence       Float     @default(0) // 0..1, grows with evidence
+  problemsSeen     Int       @default(0)
+  correctFirstTry  Int       @default(0)
+  correctSecondTry Int       @default(0)
+  wrong            Int       @default(0)
+  gaveUp           Int       @default(0)
+  streak           Int       @default(0)
+  status           String    @default("not_started") // not_started | learning | passed | mastered | needs_review
+  lastPracticedAt  DateTime?
+
+  user  User  @relation(fields: [userId], references: [id])
+  topic Topic @relation(fields: [topicId], references: [id])
+
+  @@unique([userId, topicId])
+}
+
+// ---------- Gamification ----------
+
+model XPEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  source    String // e.g. correct_first_try, topic_passed, quest_complete
+  meta      String   @default("{}")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model Badge {
+  id          String @id @default(cuid())
+  code        String @unique
+  title       String
+  description String
+  icon        String @default("🏅")
+  users       UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id])
+  badge    Badge    @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+}
+
+model Quest {
+  id          String @id @default(cuid())
+  code        String @unique
+  title       String
+  description String
+  cadence     String // daily | weekly | topic
+  ruleType    String // solve_topic_count | correct_count | review_count | pass_topic | master_topic | hard_solve | mixed_set
+  ruleParams  String @default("{}") // JSON
+  xpReward    Int    @default(50)
+  users       UserQuest[]
+}
+
+model UserQuest {
+  id          String    @id @default(cuid())
+  userId      String
+  questId     String
+  periodKey   String // e.g. 2026-07-05 for daily, 2026-W27 for weekly
+  progress    Int       @default(0)
+  target      Int       @default(1)
+  completedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id])
+  quest       Quest     @relation(fields: [questId], references: [id])
+
+  @@unique([userId, questId, periodKey])
+}
+
+model Achievement {
+  id          String @id @default(cuid())
+  code        String @unique
+  title       String
+  description String
+  hidden      Boolean @default(false)
+  icon        String  @default("⭐")
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  achievementId String
+  earnedAt      DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id])
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+}
+
+// ---------- Learner utilities ----------
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  problemId String
+  kind      String   @default("bookmark") // bookmark | needs_review
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  problem   Problem  @relation(fields: [problemId], references: [id])
+
+  @@unique([userId, problemId, kind])
+}
+
+model ReportedProblem {
+  id        String   @id @default(cuid())
+  userId    String
+  problemId String
+  message   String
+  status    String   @default("open") // open | resolved | dismissed
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  problem   Problem  @relation(fields: [problemId], references: [id])
+}
+
+// ---------- Future: classes (placeholder for teacher features) ----------
+
+model Class {
+  id          String @id @default(cuid())
+  name        String
+  section     String @default("")
+  teacherId   String?
+  enrollments ClassEnrollment[]
+  assignments Assignment[]
+}
+
+model ClassEnrollment {
+  id      String @id @default(cuid())
+  classId String
+  userId  String
+  class   Class  @relation(fields: [classId], references: [id])
+  user    User   @relation(fields: [userId], references: [id])
+
+  @@unique([classId, userId])
+}
+
+model Assignment {
+  id      String    @id @default(cuid())
+  classId String
+  topicId String
+  dueAt   DateTime?
+  class   Class     @relation(fields: [classId], references: [id])
+  topic   Topic     @relation(fields: [topicId], references: [id])
+}
