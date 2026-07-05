@@ -43,7 +43,7 @@ Then open **http://localhost:3000** and log in with one of the seeded accounts:
 
 | Role    | Username  | Password     | Can do                                      |
 | ------- | --------- | ------------ | ------------------------------------------- |
-| Learner | `learner` | `learner123` | Practice, dashboard, history, quests, badges |
+| Learner | `learner` | `learner123` | Practice, dashboard, report, history, quests, badges |
 | Admin   | `admin`   | `admin123`   | Everything above **plus** the Admin panel    |
 
 ### Everyday commands
