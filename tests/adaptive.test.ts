@@ -11,6 +11,7 @@ import {
   updateRating,
   type CandidateProblem,
   type SelectionContext,
+  type TopicProgressState,
 } from "@/lib/adaptive";
 
 const THRESH = { pass: 1100, mastery: 1300 };
@@ -94,7 +95,7 @@ describe("applyAttempt / computeStatus", () => {
   });
 
   it("a passed topic that collapses gets flagged needs_review", () => {
-    let s = { ...DEFAULT_PROGRESS, rating: 1150, confidence: 0.5, problemsSeen: 5, status: "passed" as const };
+    let s: TopicProgressState = { ...DEFAULT_PROGRESS, rating: 1150, confidence: 0.5, problemsSeen: 5, status: "passed" };
     for (let i = 0; i < 4; i++) s = applyAttempt(s, "wrong", 6, THRESH);
     expect(s.rating).toBeLessThan(THRESH.pass);
     expect(s.status).toBe("needs_review");

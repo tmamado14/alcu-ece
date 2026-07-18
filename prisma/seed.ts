@@ -1,6 +1,14 @@
 // Seed: Feedback and Control Systems curriculum + original question bank.
+//
+// Behavior:
+// - Empty database (or SEED_RESET=1): full wipe + reseed of users, curriculum,
+//   problems, and the gamification catalog.
+// - Already-seeded database: only the gamification catalog (badges, quests,
+//   achievements) is upserted by code — user accounts, attempts, progress, and
+//   earned rewards are preserved.
 import { PrismaClient } from "@prisma/client";
 import { randomBytes, scryptSync } from "crypto";
+import { ACHIEVEMENTS, BADGES, QUESTS } from "../src/lib/gamification";
 
 const prisma = new PrismaClient();
 
@@ -733,47 +741,55 @@ const P: ProblemSeed[] = [
   },
 ];
 
-// ---------- Gamification catalog (mirrors src/lib/gamification.ts) ----------
+// ---------- Gamification catalog ----------
+// The catalog lives in src/lib/gamification.ts (the unlock-rule engine) and is
+// upserted by code here, so reseeding never wipes earned user progress.
 
-const BADGE_ROWS = [
-  { code: "first-feedback", title: "First Feedback", description: "Answer your first Control Systems question.", icon: "🔁" },
-  { code: "closed-loop-beginner", title: "Closed-Loop Beginner", description: "Pass the open-loop vs closed-loop topic.", icon: "➿" },
-  { code: "routh-rookie", title: "Routh Rookie", description: "Solve 10 Routh-Hurwitz problems.", icon: "📋" },
-  { code: "root-locus-explorer", title: "Root Locus Explorer", description: "Pass root locus rules.", icon: "🧭" },
-  { code: "stability-sentinel", title: "Stability Sentinel", description: "Master all stability subtopics.", icon: "🛡️" },
-  { code: "second-try-scholar", title: "Second Try Scholar", description: "Solve 10 problems correctly on the second try.", icon: "🎯" },
-  { code: "comeback-gain", title: "Comeback Gain", description: "Correctly solve a problem you previously missed.", icon: "📈" },
-  { code: "no-skip-streak", title: "No Skip Streak", description: "Attempt 20 problems in a row without giving up.", icon: "🔥" },
-  { code: "bode-builder", title: "Bode Builder", description: "Pass the Bode plots topic.", icon: "📊" },
-  { code: "pid-apprentice", title: "PID Apprentice", description: "Pass the P/PI/PD/PID controllers topic.", icon: "🎛️" },
-  { code: "control-systems-master", title: "Control Systems Master", description: "Master every Feedback and Control Systems topic.", icon: "👑" },
-];
-
-const ACHIEVEMENT_ROWS = [
-  { code: "first-try-first-win", title: "First Try, First Win", description: "Answer your very first problem correctly on the first try.", hidden: false, icon: "🌟" },
-  { code: "mistake-repaired", title: "Mistake Repaired", description: "Correctly re-solve a problem you previously got wrong.", hidden: false, icon: "🔧" },
-  { code: "persistence-pays", title: "Persistence Pays", description: "Turn a first-try miss into a second-try success.", hidden: false, icon: "💪" },
-  { code: "five-day-feedback-loop", title: "Five-Day Feedback Loop", description: "Practice on five days in a row.", hidden: false, icon: "📅" },
-  { code: "routh-table-complete", title: "Routh Table Complete", description: "Solve a full Routh-Hurwitz stability problem.", hidden: true, icon: "🧮" },
-  { code: "overshoot-to-settling", title: "From Overshoot to Settling", description: "Pass the complete Time Response Analysis topic group.", hidden: true, icon: "〰️" },
-  { code: "against-the-poles", title: "Against the Poles", description: "Answer 5 stability questions correctly in a row.", hidden: true, icon: "⚔️" },
-  { code: "frequency-domain-traveler", title: "Frequency Domain Traveler", description: "Attempt 15 frequency-response problems.", hidden: true, icon: "🌐" },
-];
-
-const QUEST_ROWS = [
-  { code: "daily-time-response-5", title: "Transient Trainer", description: "Solve 5 Time Response problems today.", cadence: "daily", ruleType: "solve_topic_count", ruleParams: '{"topicGroup":"time-response"}', xpReward: 50 },
-  { code: "daily-stability-3", title: "Stability Check", description: "Correctly answer 3 stability questions today.", cadence: "daily", ruleType: "correct_count", ruleParams: '{"topicGroup":"stability"}', xpReward: 40 },
-  { code: "daily-review-2", title: "Error Correction", description: "Re-attempt 2 previously missed questions.", cadence: "daily", ruleType: "review_count", ruleParams: "{}", xpReward: 40 },
-  { code: "weekly-pass-topic", title: "New Ground", description: "Pass one new topic this week.", cadence: "weekly", ruleType: "pass_topic", ruleParams: "{}", xpReward: 120 },
-  { code: "weekly-master-topic", title: "Total Command", description: "Master one topic this week.", cadence: "weekly", ruleType: "master_topic", ruleParams: "{}", xpReward: 200 },
-  { code: "daily-hard-1", title: "Boss Pole", description: "Solve one hard problem (difficulty ≥ 7) today.", cadence: "daily", ruleType: "hard_solve", ruleParams: '{"minDifficulty":7}', xpReward: 60 },
-  { code: "weekly-mixed-10", title: "Full Sweep", description: "Complete a 10-problem mixed review this week.", cadence: "weekly", ruleType: "mixed_set", ruleParams: "{}", xpReward: 100 },
-];
+async function upsertGamificationCatalog() {
+  for (const b of BADGES) {
+    const data = { title: b.title, description: b.description, icon: b.icon };
+    await prisma.badge.upsert({ where: { code: b.code }, update: data, create: { code: b.code, ...data } });
+  }
+  for (const a of ACHIEVEMENTS) {
+    const data = {
+      title: a.title,
+      description: a.description,
+      hidden: a.hidden,
+      icon: a.icon,
+      tier: a.tier,
+      imagePath: a.imagePath,
+    };
+    await prisma.achievement.upsert({ where: { code: a.code }, update: data, create: { code: a.code, ...data } });
+  }
+  for (const q of QUESTS) {
+    const data = {
+      title: q.title,
+      description: q.description,
+      cadence: q.cadence,
+      ruleType: q.ruleType,
+      ruleParams: JSON.stringify(q.ruleParams),
+      xpReward: q.xpReward,
+      imagePath: q.imagePath,
+    };
+    await prisma.quest.upsert({ where: { code: q.code }, update: data, create: { code: q.code, ...data } });
+  }
+}
 
 async function main() {
   console.log("Seeding ECE Mastery…");
 
-  // wipe (idempotent reseed)
+  const existingSubject = await prisma.subject.findUnique({ where: { slug: "feedback-control-systems" } });
+  if (existingSubject && process.env.SEED_RESET !== "1") {
+    // Database already seeded: refresh the gamification catalog only.
+    await upsertGamificationCatalog();
+    console.log(
+      `Catalog refreshed: ${BADGES.length} badges, ${QUESTS.length} quests, ${ACHIEVEMENTS.length} achievements. ` +
+        "User data preserved. Run with SEED_RESET=1 for a full wipe + reseed."
+    );
+    return;
+  }
+
+  // wipe (full reset: empty database or SEED_RESET=1)
   await prisma.attemptAnswer.deleteMany();
   await prisma.attempt.deleteMany();
   await prisma.learnerTopicProgress.deleteMany();
@@ -897,11 +913,9 @@ async function main() {
   }
 
   // gamification catalog
-  for (const b of BADGE_ROWS) await prisma.badge.create({ data: b });
-  for (const a of ACHIEVEMENT_ROWS) await prisma.achievement.create({ data: a });
-  for (const q of QUEST_ROWS) await prisma.quest.create({ data: q });
+  await upsertGamificationCatalog();
 
-  console.log(`Seeded 1 subject, ${topicIdBySlug.size} topics, ${count} problems, ${BADGE_ROWS.length} badges, ${QUEST_ROWS.length} quests, ${ACHIEVEMENT_ROWS.length} achievements.`);
+  console.log(`Seeded 1 subject, ${topicIdBySlug.size} topics, ${count} problems, ${BADGES.length} badges, ${QUESTS.length} quests, ${ACHIEVEMENTS.length} achievements.`);
   console.log("Accounts: admin/admin123 (admin), learner/learner123 (learner)");
 }
 

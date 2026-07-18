@@ -1,15 +1,231 @@
 @import "tailwindcss";
 
+/* ============================================================
+   ECE Mastery design system (Tailwind v4)
+   Light, focused "study desk" theme.
+   - canvas: app background      - surface: cards/inputs
+   - ink / ink-muted / ink-faint: text hierarchy (WCAG AA on surface)
+   - line: hairline borders      - brand: indigo action color
+   Status language (kept app-wide): orange/amber = learning,
+   green = passed, sky/blue = mastered, red = needs review,
+   slate = not started.
+   ============================================================ */
+
+@theme {
+  /* Typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas,
+    monospace;
+
+  /* Semantic palette */
+  --color-canvas: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-sunken: #f8fafc;
+
+  --color-ink: #101828; /* headings/body — 16.9:1 on surface */
+  --color-ink-muted: #475467; /* secondary text — 7.4:1 */
+  --color-ink-faint: #667085; /* meta text — 5.0:1 (AA) */
+
+  --color-line: #e4e7ef;
+  --color-line-strong: #cdd3e0;
+
+  /* Brand (indigo) */
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5; /* 6.3:1 on white */
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+
+  /* Radius scale */
+  --radius-control: 0.5rem;
+  --radius-card: 0.875rem;
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.05), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow-pop: 0 12px 32px -8px rgb(16 24 40 / 0.18), 0 4px 12px rgb(16 24 40 / 0.08);
+}
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
 }
 
+/* Accessible, consistent keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--color-brand-100);
+}
+
+/* ------------------------------------------------------------
+   Shared component patterns
+   ------------------------------------------------------------ */
+@layer components {
+  /* Page headers */
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-ink;
+  }
+  .page-sub {
+    @apply mt-1 text-sm text-ink-muted;
+  }
+  .section-title {
+    @apply text-base font-semibold text-ink;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold tracking-wider text-ink-faint uppercase;
+  }
+
+  /* Cards */
+  .card {
+    @apply rounded-(--radius-card) border border-line bg-surface shadow-(--shadow-card);
+  }
+  .card-hover {
+    @apply transition duration-150 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-(--shadow-pop);
+  }
+
+  /* Buttons — base shared across variants */
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .btn-danger-outline,
+  .btn-ghost {
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-(--radius-control) px-4 py-2 text-sm font-semibold transition duration-150 select-none disabled:pointer-events-none disabled:opacity-45;
+  }
+  .btn-primary {
+    @apply bg-brand-600 text-white shadow-xs hover:bg-brand-700 active:bg-brand-800;
+  }
+  .btn-secondary {
+    @apply border border-line-strong bg-surface text-ink-muted shadow-xs hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700;
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white shadow-xs hover:bg-red-700;
+  }
+  .btn-danger-outline {
+    @apply border border-red-300 bg-surface text-red-700 hover:bg-red-50;
+  }
+  .btn-ghost {
+    @apply px-2.5 py-1.5 text-ink-muted hover:bg-sunken hover:text-ink;
+  }
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  /* Text link */
+  .link {
+    @apply font-semibold text-brand-700 underline-offset-2 hover:underline;
+  }
+
+  /* Form controls */
+  .input {
+    @apply w-full rounded-(--radius-control) border border-line-strong bg-surface px-3 py-2 text-sm text-ink transition placeholder:text-ink-faint focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none disabled:opacity-50;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-ink-muted;
+  }
+
+  /* Badges / chips — base shared across variants */
+  .chip-brand,
+  .chip-neutral,
+  .chip-success,
+  .chip-danger,
+  .chip-warning {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .chip-brand {
+    @apply bg-brand-100 text-brand-800;
+  }
+  .chip-neutral {
+    @apply bg-slate-100 text-slate-700;
+  }
+  .chip-success {
+    @apply bg-green-100 text-green-800;
+  }
+  .chip-danger {
+    @apply bg-red-100 text-red-800;
+  }
+  .chip-warning {
+    @apply bg-amber-100 text-amber-800;
+  }
+
+  /* Callouts — base shared across variants */
+  .callout-info,
+  .callout-success,
+  .callout-danger,
+  .callout-warning {
+    @apply rounded-(--radius-control) border px-4 py-3 text-sm;
+  }
+  .callout-info {
+    @apply border-brand-200 bg-brand-50 text-brand-800;
+  }
+  .callout-success {
+    @apply border-green-200 bg-green-50 text-green-800;
+  }
+  .callout-danger {
+    @apply border-red-200 bg-red-50 text-red-800;
+  }
+  .callout-warning {
+    @apply border-amber-200 bg-amber-50 text-amber-900;
+  }
+
+  /* Progress bars */
+  .progress-track {
+    @apply h-2 w-full overflow-hidden rounded-full bg-slate-200/70;
+  }
+  .progress-fill {
+    @apply h-full rounded-full;
+    animation: bar-fill 0.8s ease-out;
+  }
+
+  /* Data tables */
+  .table-wrap {
+    @apply overflow-x-auto rounded-(--radius-card) border border-line bg-surface shadow-(--shadow-card);
+  }
+  .table {
+    @apply w-full text-sm text-ink;
+  }
+  .table thead {
+    @apply bg-sunken text-left;
+  }
+  .table th {
+    @apply px-4 py-2.5 text-xs font-semibold tracking-wider text-ink-faint uppercase;
+  }
+  .table td {
+    @apply px-4 py-2.5 align-top;
+  }
+  .table tbody tr {
+    @apply border-t border-line;
+  }
+
+  /* Loading / empty states */
+  .loading-text {
+    @apply mt-8 animate-pulse text-sm text-ink-faint;
+  }
+  .error-text {
+    @apply mt-8 text-sm font-medium text-red-700;
+  }
+}
+
+/* ------------------------------------------------------------
+   Animations (respect reduced motion)
+   ------------------------------------------------------------ */
 @keyframes xp-pop {
   0% { transform: translateY(0) scale(0.8); opacity: 0; }
   20% { transform: translateY(-8px) scale(1.15); opacity: 1; }
@@ -27,4 +243,32 @@ body {
 
 .bar-fill {
   animation: bar-fill 0.8s ease-out;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up {
+  animation: fade-up 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-pop,
+  .bar-fill,
+  .fade-up,
+  .progress-fill {
+    animation: none;
+  }
+  .card-hover {
+    transition: none;
+  }
+}
+
+/* KaTeX: keep display math scrollable inside cards instead of overflowing */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.125rem 0;
 }

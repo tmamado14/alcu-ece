@@ -228,6 +228,7 @@ model Quest {
   ruleType    String // solve_topic_count | correct_count | review_count | pass_topic | master_topic | hard_solve | mixed_set
   ruleParams  String @default("{}") // JSON
   xpReward    Int    @default(50)
+  imagePath   String @default("") // e.g. /badges/quests/<code>.png
   users       UserQuest[]
 }
 
@@ -252,6 +253,8 @@ model Achievement {
   description String
   hidden      Boolean @default(false)
   icon        String  @default("⭐")
+  tier        String  @default("bronze") // bronze | silver | gold | platinum
+  imagePath   String  @default("") // e.g. /badges/achievements/<code>.png
   users       UserAchievement[]
 }
 

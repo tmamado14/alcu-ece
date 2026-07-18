@@ -14,6 +14,7 @@ import {
 } from "@/lib/adaptive";
 import { gradeAnswer, type AnswerData, type AnswerType } from "@/lib/grading";
 import { xpForAttempt } from "@/lib/gamification";
+import { ensureSolution } from "@/lib/solution-gen";
 import { awardXP, evaluateBadges, evaluateAchievements, updateQuestProgress } from "./gamification";
 
 const PENDING = "pending";
@@ -31,6 +32,7 @@ export interface NextProblemPayload {
   hints: string[];
   tags: string[];
   bookmarked: boolean;
+  hasSolution: boolean;
 }
 
 function toProgressState(p: {
@@ -136,6 +138,8 @@ export async function selectNextProblem(
     hints: JSON.parse(full.hints) as string[],
     tags: full.tags.map((t) => t.tag),
     bookmarked: full.bookmarks.length > 0,
+    // Lets the UI show a "generating solution" wait state on finalize.
+    hasSolution: full.solution.trim() !== "",
   };
 }
 
@@ -330,6 +334,14 @@ async function finalizeAttempt(
 
   const answerData = JSON.parse(problem.answerData) as AnswerData;
 
+  // No stored solution yet: generate and store one now. The learner waits
+  // (the UI shows a "generating solution" indicator); "" on failure means
+  // the outcome simply ships without a worked solution.
+  let solution = problem.solution;
+  if (solution.trim() === "") {
+    solution = await ensureSolution(problem.id);
+  }
+
   return {
     correct: result === "correct_first" || result === "correct_second",
     finalized: true,
@@ -339,7 +351,7 @@ async function finalizeAttempt(
     ratingDelta,
     newRating: nextState.rating,
     topicStatus: nextState.status,
-    solution: problem.solution,
+    solution,
     explanation: problem.explanation,
     correctAnswerDisplay: displayAnswer(problem.answerType as AnswerType, answerData),
     newBadges,

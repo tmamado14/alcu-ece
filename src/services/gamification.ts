@@ -5,6 +5,7 @@ import {
   ACHIEVEMENTS,
   BADGES,
   evaluateBadgeRules,
+  levelForXp,
   periodKeyFor,
   QUESTS,
   type AchievementContext,
@@ -92,40 +93,146 @@ export async function evaluateBadges(userId: string) {
 // ---------- Achievements ----------
 
 export async function evaluateAchievements(userId: string) {
-  const [attempts, progress, earned] = await Promise.all([
-    prisma.attempt.findMany({
-      where: { userId, result: { not: "pending" } },
-      orderBy: { createdAt: "asc" },
-      include: { problem: { include: { tags: true, topic: { include: { parentTopic: true } } } } },
-    }),
-    prisma.learnerTopicProgress.findMany({ where: { userId }, include: { topic: true } }),
-    prisma.userAchievement.findMany({ where: { userId }, include: { achievement: true } }),
-  ]);
+  const [attempts, progress, earned, questsCompleted, user, subjects, leafTopics, parentTopics] =
+    await Promise.all([
+      prisma.attempt.findMany({
+        where: { userId, result: { not: "pending" } },
+        orderBy: { createdAt: "asc" },
+        include: { problem: { include: { tags: true, topic: { include: { parentTopic: true } } } } },
+      }),
+      prisma.learnerTopicProgress.findMany({ where: { userId }, include: { topic: true } }),
+      prisma.userAchievement.findMany({ where: { userId }, include: { achievement: true } }),
+      prisma.userQuest.count({ where: { userId, completedAt: { not: null } } }),
+      prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { totalXp: true } }),
+      prisma.subject.findMany({ select: { id: true } }),
+      prisma.topic.findMany({ where: { parentTopicId: { not: null } }, select: { id: true, subjectId: true } }),
+      prisma.topic.findMany({ where: { parentTopicId: null }, select: { id: true, subjectId: true } }),
+    ]);
   const alreadyEarned = new Set(earned.map((e) => e.achievement.code));
 
   const solvedResults = new Set(["correct_first", "correct_second"]);
-  const missedProblemIds = new Set<string>();
-  let mistakeRepaired = false;
+
+  // ---- single pass over the attempt history (chronological) ----
+  let totalSolved = 0;
+  let bestCorrectStreak = 0, curCorrectStreak = 0;
+  let bestFirstTryStreak = 0, curFirstTryStreak = 0;
+  let hardSolvedCount = 0, veryHardSolved = false, hardFirstTrySolved = false;
+  let fastestFirstTrySec: number | null = null;
+  let halfTimeSolveCount = 0;
+  let comebackCount = 0, thirdTryComeback = false, bounceBack = false, mistakeRepaired = false;
+  let nightOwlSolve = false, earlyBirdSolve = false;
+  let weekendSaturdaySolve = false, weekendSundaySolve = false;
+  let missRun = 0;
+  const missCountByProblem = new Map<string, number>();
+  const dayStats = new Map<string, { attempts: number; solved: number }>();
+  const solvedAnswerTypes = new Set<string>();
+  const attemptedSubjectIds = new Set<string>();
+  const attemptedGroupIds = new Set<string>(); // parent topic (group) ids with >= 1 attempt
+
   for (const a of attempts) {
-    if (solvedResults.has(a.result)) {
-      if (missedProblemIds.has(a.problemId)) mistakeRepaired = true;
+    const solved = solvedResults.has(a.result);
+    const topic = a.problem.topic;
+
+    attemptedSubjectIds.add(topic.subjectId);
+    attemptedGroupIds.add(topic.parentTopic?.id ?? topic.id);
+
+    const dayKey = a.createdAt.toISOString().slice(0, 10);
+    const day = dayStats.get(dayKey) ?? { attempts: 0, solved: 0 };
+    day.attempts++;
+    if (solved) day.solved++;
+    dayStats.set(dayKey, day);
+
+    if (solved) {
+      totalSolved++;
+      solvedAnswerTypes.add(a.problem.answerType);
+
+      curCorrectStreak++;
+      bestCorrectStreak = Math.max(bestCorrectStreak, curCorrectStreak);
+      if (a.result === "correct_first") {
+        curFirstTryStreak++;
+        bestFirstTryStreak = Math.max(bestFirstTryStreak, curFirstTryStreak);
+        if (a.timeSpentSec > 0) {
+          fastestFirstTrySec =
+            fastestFirstTrySec === null ? a.timeSpentSec : Math.min(fastestFirstTrySec, a.timeSpentSec);
+        }
+        if (a.problem.difficulty >= 7) hardFirstTrySolved = true;
+      } else {
+        curFirstTryStreak = 0;
+      }
+
+      if (a.problem.difficulty >= 7) hardSolvedCount++;
+      if (a.problem.difficulty >= 9) veryHardSolved = true;
+      if (a.timeSpentSec > 0 && a.timeSpentSec * 2 <= a.problem.estimatedTime) halfTimeSolveCount++;
+
+      const hour = a.createdAt.getHours();
+      if (hour < 5) nightOwlSolve = true;
+      else if (hour < 8) earlyBirdSolve = true;
+      const weekday = a.createdAt.getDay();
+      if (weekday === 6) weekendSaturdaySolve = true;
+      if (weekday === 0) weekendSundaySolve = true;
+
+      const priorMisses = missCountByProblem.get(a.problemId) ?? 0;
+      if (priorMisses >= 1) { comebackCount++; mistakeRepaired = true; }
+      if (priorMisses >= 2) thirdTryComeback = true;
+      if (missRun >= 3) bounceBack = true;
+      missRun = 0;
     } else {
-      missedProblemIds.add(a.problemId);
+      curCorrectStreak = 0;
+      curFirstTryStreak = 0;
+      missRun++;
+      missCountByProblem.set(a.problemId, (missCountByProblem.get(a.problemId) ?? 0) + 1);
     }
   }
 
   // consecutive active days ending today
-  const days = new Set(attempts.map((a) => a.createdAt.toISOString().slice(0, 10)));
   let activeDaysStreak = 0;
   const cursor = new Date();
   for (;;) {
     const key = cursor.toISOString().slice(0, 10);
-    if (days.has(key)) {
+    if (dayStats.has(key)) {
       activeDaysStreak++;
       cursor.setUTCDate(cursor.getUTCDate() - 1);
     } else break;
   }
 
+  // ---- mastery / exploration aggregates ----
+  const passedTopicCount = progress.filter((p) => p.status === "passed" || p.status === "mastered").length;
+  const masteredTopicIds = new Set(progress.filter((p) => p.status === "mastered").map((p) => p.topicId));
+  const masteredTopicCount = masteredTopicIds.size;
+
+  const leavesBySubject = new Map<string, string[]>();
+  for (const t of leafTopics) {
+    const list = leavesBySubject.get(t.subjectId) ?? [];
+    list.push(t.id);
+    leavesBySubject.set(t.subjectId, list);
+  }
+  let subjectsMasteredCount = 0;
+  let subjectsWithTopics = 0;
+  for (const leaves of leavesBySubject.values()) {
+    subjectsWithTopics++;
+    if (leaves.every((id) => masteredTopicIds.has(id))) subjectsMasteredCount++;
+  }
+  const allSubjectsMastered = subjectsWithTopics > 0 && subjectsMasteredCount === subjectsWithTopics;
+
+  const groupsBySubject = new Map<string, string[]>();
+  for (const t of parentTopics) {
+    const list = groupsBySubject.get(t.subjectId) ?? [];
+    list.push(t.id);
+    groupsBySubject.set(t.subjectId, list);
+  }
+  let attemptedAllTopicGroups = false;
+  for (const groups of groupsBySubject.values()) {
+    if (groups.length > 0 && groups.every((id) => attemptedGroupIds.has(id))) {
+      attemptedAllTopicGroups = true;
+      break;
+    }
+  }
+  const subjectIdsWithTopics = new Set(leafTopics.map((t) => t.subjectId));
+  const attemptedEverySubject =
+    subjectIdsWithTopics.size > 0 &&
+    subjects.filter((s) => subjectIdsWithTopics.has(s.id)).every((s) => attemptedSubjectIds.has(s.id));
+
+  // ---- subject-specific stats (Feedback & Control Systems lore) ----
   const stabilityAttempts = attempts.filter(
     (a) => a.problem.topic.parentTopic?.slug === "stability" || a.problem.topic.slug === "stability"
   );
@@ -158,14 +265,47 @@ export async function evaluateAchievements(userId: string) {
     frequencyAttempts: attempts.filter(
       (a) => a.problem.topic.parentTopic?.slug === "frequency-response"
     ).length,
+    totalAttempts: attempts.length,
+    totalSolved,
+    bestCorrectStreak,
+    bestFirstTryStreak,
+    totalActiveDays: dayStats.size,
+    passedTopicCount,
+    masteredTopicCount,
+    subjectsMasteredCount,
+    allSubjectsMastered,
+    hardSolvedCount,
+    veryHardSolved,
+    hardFirstTrySolved,
+    fastestFirstTrySec,
+    halfTimeSolveCount,
+    comebackCount,
+    thirdTryComeback,
+    bounceBack,
+    attemptedAllTopicGroups,
+    attemptedEverySubject,
+    solvedAnswerTypes,
+    questsCompleted,
+    totalXp: user.totalXp,
+    level: levelForXp(user.totalXp).level,
+    nightOwlSolve,
+    earlyBirdSolve,
+    weekendSaturdaySolve,
+    weekendSundaySolve,
+    perfectDay: [...dayStats.values()].some((d) => d.attempts >= 5 && d.solved === d.attempts),
+    earnedCodes: new Set(alreadyEarned),
   };
 
+  // Evaluate in catalog order; the platinum meta achievement is last, so
+  // earnedCodes already includes everything unlocked in this pass.
   const results: { code: string; title: string; icon: string }[] = [];
   for (const def of ACHIEVEMENTS) {
-    if (alreadyEarned.has(def.code) || !def.earned(ctx)) continue;
+    if (alreadyEarned.has(def.code)) continue;
+    if (!def.earned(ctx)) continue;
     const ach = await prisma.achievement.findUnique({ where: { code: def.code } });
     if (!ach) continue;
     await prisma.userAchievement.create({ data: { userId, achievementId: ach.id } });
+    ctx.earnedCodes.add(def.code);
     results.push({ code: def.code, title: def.title, icon: def.icon });
   }
   return results;
@@ -271,6 +411,7 @@ export async function getActiveQuests(userId: string) {
   const out: {
     code: string; title: string; description: string; cadence: string;
     progress: number; target: number; xpReward: number; completed: boolean;
+    imagePath: string;
   }[] = [];
   for (const q of QUESTS) {
     const periodKey = periodKeyFor(q.cadence);
@@ -288,6 +429,7 @@ export async function getActiveQuests(userId: string) {
       target: q.target,
       xpReward: q.xpReward,
       completed: !!uq?.completedAt,
+      imagePath: q.imagePath,
     });
   }
   return out;

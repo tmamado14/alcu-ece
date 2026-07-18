@@ -25,10 +25,10 @@ interface ProblemDetail {
 }
 
 const RESULT_STYLE: Record<string, string> = {
-  correct_first: "bg-green-100 text-green-800",
-  correct_second: "bg-lime-100 text-lime-800",
-  wrong: "bg-red-100 text-red-800",
-  gave_up: "bg-slate-200 text-slate-600",
+  correct_first: "chip-success",
+  correct_second: "chip-success",
+  wrong: "chip-danger",
+  gave_up: "chip-neutral",
 };
 
 export default function HistoryPage() {
@@ -73,16 +73,21 @@ export default function HistoryPage() {
     if (res.ok) setDetail(await res.json());
   }
 
-  if (error) return <p className="mt-8 text-red-600">{error}</p>;
+  if (error) return <p className="error-text">{error}</p>;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Problem history</h1>
+    <div className="fade-up">
+      <h1 className="page-title">Problem history</h1>
+      <p className="page-sub">Every attempt you&rsquo;ve made, with solutions one click away.</p>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3 text-sm">
-        <label className="flex flex-col">
-          <span className="text-xs text-slate-500">Result</span>
-          <select value={result} onChange={(e) => { setResult(e.target.value); setPage(1); }} className="rounded border border-slate-300 px-2 py-1">
+      <div className="mt-5 flex flex-wrap items-end gap-3 text-sm">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-ink-faint">Result</span>
+          <select
+            value={result}
+            onChange={(e) => { setResult(e.target.value); setPage(1); }}
+            className="input w-auto py-1.5"
+          >
             <option value="">All</option>
             <option value="correct_first">Correct (1st try)</option>
             <option value="correct_second">Correct (2nd try)</option>
@@ -90,58 +95,74 @@ export default function HistoryPage() {
             <option value="gave_up">Gave up</option>
           </select>
         </label>
-        <label className="flex flex-col">
-          <span className="text-xs text-slate-500">From</span>
-          <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="rounded border border-slate-300 px-2 py-1" />
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-ink-faint">From</span>
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => { setFrom(e.target.value); setPage(1); }}
+            className="input w-auto py-1.5"
+          />
         </label>
-        <label className="flex flex-col">
-          <span className="text-xs text-slate-500">To</span>
-          <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="rounded border border-slate-300 px-2 py-1" />
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-ink-faint">To</span>
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => { setTo(e.target.value); setPage(1); }}
+            className="input w-auto py-1.5"
+          />
         </label>
-        <span className="ml-auto text-slate-500">{total} attempts</span>
+        <span className="ml-auto pb-1 text-ink-faint">{total} attempts</span>
       </div>
 
       {!items ? (
-        <p className="mt-8 animate-pulse text-slate-400">Loading history…</p>
+        <p className="loading-text">Loading history…</p>
       ) : items.length === 0 ? (
-        <p className="mt-8 rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
+        <p className="card mt-5 p-8 text-center text-sm text-ink-faint">
           No attempts match these filters yet.
         </p>
       ) : (
-        <div className="mt-4 space-y-2">
+        <div className="mt-5 space-y-2">
           {items.map((a) => (
-            <div key={a.id} className="rounded-lg border border-slate-200 bg-white">
-              <button onClick={() => openProblem(a)} className="flex w-full flex-wrap items-center gap-3 p-3 text-left text-sm">
-                <span className={`rounded px-2 py-0.5 text-xs font-semibold ${RESULT_STYLE[a.result] ?? ""}`}>
-                  {a.result.replace("_", " ")}
+            <div key={a.id} className="card overflow-hidden">
+              <button
+                onClick={() => openProblem(a)}
+                aria-expanded={open === a.id}
+                className="flex w-full cursor-pointer flex-wrap items-center gap-3 p-3.5 text-left text-sm transition hover:bg-sunken"
+              >
+                <span className={`${RESULT_STYLE[a.result] ?? "chip-neutral"} capitalize`}>
+                  {a.result.replace(/_/g, " ")}
                 </span>
-                <span className="font-semibold">{a.topic.title}</span>
-                <span className="text-xs text-slate-400">{a.tags.join(", ")}</span>
-                <span className="ml-auto text-xs text-slate-500">
-                  {a.xpAwarded > 0 && <b className="text-indigo-600">+{a.xpAwarded} XP </b>}
+                <span className="font-semibold text-ink">{a.topic.title}</span>
+                <span className="text-xs text-ink-faint">{a.tags.join(", ")}</span>
+                <span className="ml-auto text-xs text-ink-faint">
+                  {a.xpAwarded > 0 && <b className="text-brand-700">+{a.xpAwarded} XP </b>}
                   {new Date(a.createdAt).toLocaleString()}
                 </span>
               </button>
               {open === a.id && (
-                <div className="border-t border-slate-100 p-4 text-sm">
+                <div className="fade-up border-t border-line bg-sunken/50 p-4 text-sm">
                   {!detail ? (
-                    <p className="animate-pulse text-slate-400">Loading problem…</p>
+                    <p className="animate-pulse text-ink-faint">Loading problem…</p>
                   ) : (
                     <>
-                      <div className="leading-relaxed"><Latex>{detail.statement}</Latex></div>
+                      <div className="leading-relaxed text-ink"><Latex>{detail.statement}</Latex></div>
                       <div className="mt-3 space-y-1">
                         {a.answers.map((ans) => (
                           <p key={ans.tryNumber} className={ans.isCorrect ? "text-green-700" : "text-red-700"}>
-                            Try {ans.tryNumber}: <code className="rounded bg-slate-100 px-1">{ans.submitted}</code>{" "}
+                            Try {ans.tryNumber}:{" "}
+                            <code className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs">{ans.submitted}</code>{" "}
                             {ans.isCorrect ? "✓" : "✗"}{" "}
-                            <span className="text-xs text-slate-400">{new Date(ans.at).toLocaleTimeString()}</span>
+                            <span className="text-xs text-ink-faint">{new Date(ans.at).toLocaleTimeString()}</span>
                           </p>
                         ))}
                       </div>
-                      <p className="mt-3 font-semibold">
-                        Correct answer: <span className="font-mono"><Latex>{detail.correctAnswerDisplay}</Latex></span>
+                      <p className="mt-3 font-semibold text-ink">
+                        Correct answer:{" "}
+                        <span className="font-mono"><Latex>{detail.correctAnswerDisplay}</Latex></span>
                       </p>
-                      <div className="mt-2 rounded bg-slate-50 p-3 leading-relaxed">
+                      <div className="mt-2 rounded-(--radius-control) border border-line bg-surface p-3 leading-relaxed">
                         <Latex>{detail.solution}</Latex>
                       </div>
                     </>
@@ -151,11 +172,15 @@ export default function HistoryPage() {
             </div>
           ))}
           <div className="flex items-center justify-between pt-2 text-sm">
-            <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="rounded border border-slate-300 px-3 py-1 disabled:opacity-30">
+            <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="btn-secondary btn-sm">
               ← Prev
             </button>
-            <span className="text-slate-500">Page {page} of {Math.max(1, Math.ceil(total / 20))}</span>
-            <button disabled={page >= Math.ceil(total / 20)} onClick={() => setPage((p) => p + 1)} className="rounded border border-slate-300 px-3 py-1 disabled:opacity-30">
+            <span className="text-ink-faint">Page {page} of {Math.max(1, Math.ceil(total / 20))}</span>
+            <button
+              disabled={page >= Math.ceil(total / 20)}
+              onClick={() => setPage((p) => p + 1)}
+              className="btn-secondary btn-sm"
+            >
               Next →
             </button>
           </div>

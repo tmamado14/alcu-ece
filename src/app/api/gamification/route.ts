@@ -26,6 +26,7 @@ export const GET = handle(async () => {
       .filter((a) => !a.hidden || earnedAchIds.has(a.id))
       .map((a) => ({
         code: a.code, title: a.title, description: a.description, icon: a.icon, hidden: a.hidden,
+        tier: a.tier, imagePath: a.imagePath,
         earned: earnedAchIds.has(a.id),
         earnedAt: earnedAchIds.get(a.id) ?? null,
       })),

@@ -11,6 +11,22 @@ interface QuestRow {
   target: number;
   xpReward: number;
   completed: boolean;
+  imagePath?: string;
+}
+
+/** Quest badge art from imagePath, falling back to an emoji while images don't exist yet. */
+function QuestArt({ imagePath, completed }: { imagePath?: string; completed: boolean }) {
+  const [failed, setFailed] = useState(false);
+  if (!imagePath || failed) return <span aria-hidden>{completed ? "✅ " : "🗺️ "}</span>;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={imagePath}
+      alt=""
+      className="mr-1.5 inline-block h-6 w-6 object-contain align-text-bottom"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export default function QuestsPage() {
@@ -26,8 +42,8 @@ export default function QuestsPage() {
       .catch((e) => setError(e.message));
   }, []);
 
-  if (error) return <p className="mt-8 text-red-600">{error}</p>;
-  if (!quests) return <p className="mt-8 animate-pulse text-slate-400">Loading quests…</p>;
+  if (error) return <p className="error-text">{error}</p>;
+  if (!quests) return <p className="loading-text">Loading quests…</p>;
 
   const groups: [string, QuestRow[]][] = [
     ["Daily quests", quests.filter((q) => q.cadence === "daily")],
@@ -35,40 +51,39 @@ export default function QuestsPage() {
   ];
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Quests</h1>
-      <p className="mt-1 text-sm text-slate-500">Progress counts automatically as you practice.</p>
+    <div className="fade-up">
+      <h1 className="page-title">Quests</h1>
+      <p className="page-sub">Progress counts automatically as you practice.</p>
       {groups.map(([title, list]) => (
-        <div key={title} className="mt-6">
-          <h2 className="font-bold text-slate-700">{title}</h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <section key={title} className="mt-8">
+          <h2 className="eyebrow">{title}</h2>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
             {list.map((q) => (
               <div
                 key={q.code}
-                className={`rounded-xl border p-4 ${
-                  q.completed ? "border-teal-300 bg-teal-50" : "border-slate-200 bg-white"
-                }`}
+                className={`card p-5 ${q.completed ? "border-green-300 bg-green-50/60" : ""}`}
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold">{q.completed ? "✅ " : "🗺️ "}{q.title}</h3>
-                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-700">
-                    +{q.xpReward} XP
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-semibold text-ink">
+                    <QuestArt imagePath={q.imagePath} completed={q.completed} />
+                    {q.title}
+                  </h3>
+                  <span className="chip-brand shrink-0">+{q.xpReward} XP</span>
                 </div>
-                <p className="mt-1 text-sm text-slate-600">{q.description}</p>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                <p className="mt-1 text-sm leading-relaxed text-ink-muted">{q.description}</p>
+                <div className="progress-track mt-4">
                   <div
-                    className={`h-full rounded-full ${q.completed ? "bg-teal-500" : "bg-indigo-500"}`}
+                    className={`progress-fill ${q.completed ? "bg-green-600" : "bg-brand-600"}`}
                     style={{ width: `${Math.min(100, (q.progress / q.target) * 100)}%` }}
                   />
                 </div>
-                <p className="mt-1 text-right text-xs text-slate-500">
+                <p className="mt-1.5 text-right text-xs font-medium text-ink-faint">
                   {q.completed ? "Complete!" : `${q.progress}/${q.target}`}
                 </p>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       ))}
     </div>
   );

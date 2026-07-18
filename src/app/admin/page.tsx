@@ -25,6 +25,13 @@ interface ReportRow {
   createdAt: string;
 }
 
+const STATUS_CHIP: Record<string, string> = {
+  active: "chip-success",
+  archived: "chip-neutral",
+  draft: "chip-warning",
+  reviewed: "chip-warning",
+};
+
 export default function AdminPage() {
   const [problems, setProblems] = useState<ProblemRow[] | null>(null);
   const [reports, setReports] = useState<ReportRow[] | null>(null);
@@ -61,49 +68,61 @@ export default function AdminPage() {
     load();
   }
 
-  if (error) return <p className="mt-8 text-red-600">{error}</p>;
+  if (error) return <p className="error-text">{error}</p>;
 
   const openReports = (reports ?? []).filter((r) => r.status === "open");
 
   return (
-    <div>
+    <div className="fade-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Question bank</h1>
+        <div>
+          <h1 className="page-title">Question bank</h1>
+          <p className="page-sub">Manage problems, topics, imports, and learner reports.</p>
+        </div>
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/admin/problems/new" className="rounded bg-indigo-600 px-3 py-1.5 font-semibold text-white">
+          <Link href="/admin/problems/new" className="btn-primary btn-sm">
             + New problem
           </Link>
-          <Link href="/admin/topics" className="rounded border border-slate-300 px-3 py-1.5 font-semibold">
+          <Link href="/admin/generate" className="btn-secondary btn-sm">
+            ✨ AI writer
+          </Link>
+          <Link href="/admin/topics" className="btn-secondary btn-sm">
             Topics
           </Link>
-          <Link href="/admin/import" className="rounded border border-slate-300 px-3 py-1.5 font-semibold">
+          <Link href="/admin/import" className="btn-secondary btn-sm">
             Import
           </Link>
-          <a href="/api/admin/export?format=json" className="rounded border border-slate-300 px-3 py-1.5 font-semibold">
+          <a href="/api/admin/export?format=json" className="btn-secondary btn-sm">
             Export JSON
           </a>
-          <a href="/api/admin/export?format=csv" className="rounded border border-slate-300 px-3 py-1.5 font-semibold">
+          <a href="/api/admin/export?format=csv" className="btn-secondary btn-sm">
             Export CSV
           </a>
         </div>
       </div>
 
       {openReports.length > 0 && (
-        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
-          <h2 className="font-bold text-amber-900">🚩 Open question reports ({openReports.length})</h2>
-          <ul className="mt-2 space-y-2 text-sm">
+        <div className="callout-warning mt-5">
+          <h2 className="font-semibold">🚩 Open question reports ({openReports.length})</h2>
+          <ul className="mt-2 space-y-2">
             {openReports.map((r) => (
-              <li key={r.id} className="rounded bg-white p-3">
-                <p className="text-slate-700">&ldquo;{r.message}&rdquo; — <i>{r.reportedBy}</i></p>
-                <p className="mt-1 text-xs text-slate-400">{r.statement}…</p>
-                <div className="mt-2 flex gap-2 text-xs">
-                  <Link href={`/admin/problems/${r.problemId}`} className="font-semibold text-indigo-600">
+              <li key={r.id} className="rounded-(--radius-control) border border-line bg-surface p-3">
+                <p className="text-ink">&ldquo;{r.message}&rdquo; — <i className="text-ink-muted">{r.reportedBy}</i></p>
+                <p className="mt-1 text-xs text-ink-faint">{r.statement}…</p>
+                <div className="mt-2 flex gap-3 text-xs">
+                  <Link href={`/admin/problems/${r.problemId}`} className="link text-xs">
                     Edit problem
                   </Link>
-                  <button onClick={() => resolveReport(r.id, "resolved")} className="text-green-700">
+                  <button
+                    onClick={() => resolveReport(r.id, "resolved")}
+                    className="cursor-pointer font-semibold text-green-700 hover:underline"
+                  >
                     Mark resolved
                   </button>
-                  <button onClick={() => resolveReport(r.id, "dismissed")} className="text-slate-500">
+                  <button
+                    onClick={() => resolveReport(r.id, "dismissed")}
+                    className="cursor-pointer font-semibold text-ink-faint hover:underline"
+                  >
                     Dismiss
                   </button>
                 </div>
@@ -113,14 +132,14 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-3 text-sm">
+      <div className="mt-5 flex flex-wrap gap-3 text-sm">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search statements…"
-          className="w-64 rounded border border-slate-300 px-3 py-1.5"
+          className="input w-64 py-1.5"
         />
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded border border-slate-300 px-2 py-1.5">
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="input w-auto py-1.5">
           <option value="">All statuses</option>
           <option value="draft">Draft</option>
           <option value="reviewed">Reviewed</option>
@@ -130,44 +149,41 @@ export default function AdminPage() {
       </div>
 
       {!problems ? (
-        <p className="mt-8 animate-pulse text-slate-400">Loading problems…</p>
+        <p className="loading-text">Loading problems…</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+        <div className="table-wrap mt-4">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="px-3 py-2">Statement</th>
-                <th className="px-3 py-2">Topic</th>
-                <th className="px-3 py-2">Type</th>
-                <th className="px-3 py-2">Diff</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Attempts</th>
+                <th>Statement</th>
+                <th>Topic</th>
+                <th>Type</th>
+                <th>Diff</th>
+                <th>Status</th>
+                <th>Attempts</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {problems.map((p) => (
-                <tr key={p.id} className="hover:bg-indigo-50/40">
-                  <td className="max-w-xs px-3 py-2">
-                    <Link href={`/admin/problems/${p.id}`} className="font-medium text-indigo-700 hover:underline">
+                <tr key={p.id} className="transition hover:bg-brand-50/40">
+                  <td className="max-w-xs">
+                    <Link href={`/admin/problems/${p.id}`} className="font-medium text-brand-700 underline-offset-2 hover:underline">
                       {p.statement}…
                     </Link>
                     {p.reportCount > 0 && <span className="ml-1 text-red-600">🚩{p.reportCount}</span>}
                   </td>
-                  <td className="px-3 py-2">{p.topic.title}</td>
-                  <td className="px-3 py-2 text-xs">{p.answerType.replace(/_/g, " ")}</td>
-                  <td className="px-3 py-2">{p.difficulty}</td>
-                  <td className="px-3 py-2">
-                    <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
-                      p.status === "active" ? "bg-green-100 text-green-700" :
-                      p.status === "archived" ? "bg-slate-100 text-slate-500" : "bg-yellow-100 text-yellow-700"
-                    }`}>{p.status}</span>
+                  <td>{p.topic.title}</td>
+                  <td className="text-xs">{p.answerType.replace(/_/g, " ")}</td>
+                  <td>{p.difficulty}</td>
+                  <td>
+                    <span className={STATUS_CHIP[p.status] ?? "chip-neutral"}>{p.status}</span>
                   </td>
-                  <td className="px-3 py-2">{p.attemptCount}</td>
+                  <td>{p.attemptCount}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {problems.length === 0 && <p className="p-8 text-center text-slate-400">No problems match.</p>}
+          {problems.length === 0 && <p className="p-8 text-center text-ink-faint">No problems match.</p>}
         </div>
       )}
     </div>

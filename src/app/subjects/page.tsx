@@ -26,36 +26,33 @@ export default function SubjectsPage() {
       .catch((e) => setError(e.message));
   }, []);
 
-  if (error) return <p className="mt-8 text-red-600">{error}</p>;
-  if (!subjects) return <p className="mt-8 animate-pulse text-slate-400">Loading subjects…</p>;
+  if (error) return <p className="error-text">{error}</p>;
+  if (!subjects) return <p className="loading-text">Loading subjects…</p>;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Subjects</h1>
+    <div className="fade-up">
+      <h1 className="page-title">Subjects</h1>
+      <p className="page-sub">Pick a subject to see its topic map and start drilling.</p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {subjects.map((s) => (
-          <Link
-            key={s.id}
-            href={`/subjects/${s.slug}`}
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow"
-          >
-            <h2 className="text-lg font-bold">{s.title}</h2>
-            <p className="mt-1 text-sm text-slate-600">{s.description}</p>
-            <div className="mt-4 flex gap-4 text-sm">
-              <span className="text-slate-500">{s.topicCount} topics</span>
-              <span className="font-semibold text-green-700">{s.passedCount} passed</span>
-              <span className="font-semibold text-blue-700">{s.masteredCount} mastered</span>
+          <Link key={s.id} href={`/subjects/${s.slug}`} className="card card-hover block p-6">
+            <h2 className="text-lg font-semibold text-ink">{s.title}</h2>
+            <p className="mt-1 text-sm leading-relaxed text-ink-muted">{s.description}</p>
+            <div className="mt-4 flex flex-wrap gap-2 text-sm">
+              <span className="chip-neutral">{s.topicCount} topics</span>
+              <span className="chip-success">{s.passedCount} passed</span>
+              <span className="chip-brand">{s.masteredCount} mastered</span>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+            <div className="progress-track mt-3">
               <div
-                className="h-full rounded-full bg-green-500"
+                className="progress-fill bg-green-600"
                 style={{ width: `${s.topicCount ? (s.passedCount / s.topicCount) * 100 : 0}%` }}
               />
             </div>
           </Link>
         ))}
       </div>
-      <p className="mt-8 text-sm text-slate-500">
+      <p className="mt-8 text-sm text-ink-faint">
         More ECE subjects (Signals and Systems, Communications, Electronics, …) can be added from the
         admin panel — the platform is subject-agnostic.
       </p>

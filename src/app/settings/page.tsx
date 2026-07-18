@@ -41,14 +41,15 @@ export default function SettingsPage() {
     }
   }
 
-  if (error) return <p className="mt-8 text-red-600">{error}</p>;
-  if (!me) return <p className="mt-8 animate-pulse text-slate-400">Loading profile…</p>;
+  if (error) return <p className="error-text">{error}</p>;
+  if (!me) return <p className="loading-text">Loading profile…</p>;
 
   return (
-    <div className="mx-auto max-w-lg">
-      <h1 className="text-2xl font-bold">Profile & settings</h1>
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-        <dl className="space-y-3 text-sm">
+    <div className="fade-up mx-auto max-w-lg">
+      <h1 className="page-title">Profile &amp; settings</h1>
+      <div className="card mt-6 p-6">
+        <h2 className="eyebrow">Account</h2>
+        <dl className="mt-3 divide-y divide-line text-sm">
           {[
             ["Name", me.name],
             ["Username", me.username],
@@ -57,24 +58,20 @@ export default function SettingsPage() {
             ["Level", `${me.level.level} (${me.totalXp} XP)`],
             ["Member since", new Date(me.createdAt).toLocaleDateString()],
           ].map(([k, v]) => (
-            <div key={k} className="flex justify-between">
-              <dt className="font-semibold text-slate-500">{k}</dt>
-              <dd>{v}</dd>
+            <div key={k} className="flex justify-between py-2.5">
+              <dt className="font-medium text-ink-faint">{k}</dt>
+              <dd className="text-ink">{v}</dd>
             </div>
           ))}
         </dl>
       </div>
 
-      <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-6">
-        <h2 className="font-bold text-red-800">Danger zone</h2>
-        <p className="mt-1 text-sm text-red-700">
+      <div className="card mt-6 border-red-200 p-6">
+        <h2 className="font-semibold text-red-800">Danger zone</h2>
+        <p className="mt-1 text-sm leading-relaxed text-ink-muted">
           Reset all learning progress for this account (useful for testing the adaptive engine).
         </p>
-        <button
-          onClick={resetProgress}
-          disabled={resetting}
-          className="mt-3 rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-        >
+        <button onClick={resetProgress} disabled={resetting} className="btn-danger mt-4">
           {resetDone ? "Progress reset ✓" : resetting ? "Resetting…" : "Reset my progress"}
         </button>
       </div>

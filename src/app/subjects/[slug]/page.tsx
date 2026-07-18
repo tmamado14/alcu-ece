@@ -39,51 +39,45 @@ export default function TopicMapPage({ params }: { params: Promise<{ slug: strin
       .catch((e) => setError(e.message));
   }, [slug]);
 
-  if (error) return <p className="mt-8 text-red-600">{error}</p>;
-  if (!data) return <p className="mt-8 animate-pulse text-slate-400">Loading topic map…</p>;
+  if (error) return <p className="error-text">{error}</p>;
+  if (!data) return <p className="loading-text">Loading topic map…</p>;
 
   return (
-    <div>
+    <div className="fade-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{data.subject.title}</h1>
+        <h1 className="page-title">{data.subject.title}</h1>
         <div className="flex gap-2">
-          <Link
-            href="/practice?mode=adaptive"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-          >
+          <Link href="/practice?mode=adaptive" className="btn-primary">
             🎯 Adaptive practice
           </Link>
-          <Link
-            href="/practice?mode=review"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
+          <Link href="/practice?mode=review" className="btn-secondary">
             🔁 Review mode
           </Link>
         </div>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-faint">
         {Object.entries(STATUS_COLORS).map(([k, v]) => (
-          <span key={k} className="flex items-center gap-1">
+          <span key={k} className="flex items-center gap-1.5">
             <span className={`inline-block h-2.5 w-2.5 rounded-full ${v.bar}`} /> {v.label}
           </span>
         ))}
       </div>
 
-      <div className="mt-6 space-y-6">
+      <div className="mt-6 space-y-5">
         {data.topics.map((group) => (
-          <div key={group.id} className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="font-bold text-slate-800">{group.title}</h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <section key={group.id} className="card p-5">
+            <h2 className="section-title">{group.title}</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {group.children.map((t) => {
                 const c = STATUS_COLORS[t.status] ?? STATUS_COLORS.not_started;
                 return (
-                  <div key={t.id} className="rounded-lg border border-slate-100 p-3">
+                  <div key={t.id} className="rounded-(--radius-control) border border-line bg-sunken/60 p-4">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">{t.title}</span>
-                      <span className={`text-xs font-semibold ${c.text}`}>{c.label}</span>
+                      <span className="text-sm font-semibold text-ink">{t.title}</span>
+                      <span className={`shrink-0 text-xs font-semibold ${c.text}`}>{c.label}</span>
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2.5">
                       <TopicBar
                         status={t.status}
                         rating={t.rating}
@@ -91,24 +85,21 @@ export default function TopicMapPage({ params }: { params: Promise<{ slug: strin
                         masteryThreshold={t.masteryThreshold}
                       />
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                    <div className="mt-2.5 flex items-center justify-between text-xs text-ink-faint">
                       <span>
                         Rating {t.rating} · {t.problemsSeen} attempted
                         {t.streak > 1 ? ` · 🔥${t.streak}` : ""}
                       </span>
                       {t.problemCount > 0 ? (
-                        <Link
-                          href={`/practice?topicId=${t.id}&mode=drill`}
-                          className="font-semibold text-indigo-600 hover:underline"
-                        >
+                        <Link href={`/practice?topicId=${t.id}&mode=drill`} className="link text-xs">
                           Drill →
                         </Link>
                       ) : (
-                        <span className="text-slate-300">No problems yet</span>
+                        <span className="text-ink-faint/60">No problems yet</span>
                       )}
                     </div>
                     {t.prerequisites.length > 0 && (
-                      <p className="mt-1 text-[11px] text-slate-400">
+                      <p className="mt-1.5 text-[11px] text-ink-faint">
                         Requires: {t.prerequisites.map((p) => p.title).join(", ")}
                       </p>
                     )}
@@ -116,7 +107,7 @@ export default function TopicMapPage({ params }: { params: Promise<{ slug: strin
                 );
               })}
             </div>
-          </div>
+          </section>
         ))}
       </div>
     </div>

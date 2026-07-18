@@ -44,8 +44,8 @@ export default function DashboardPage() {
       .catch((e) => setError(e.message));
   }, []);
 
-  if (error) return <p className="mt-8 text-red-600">{error}</p>;
-  if (!report) return <p className="mt-8 animate-pulse text-slate-400">Loading dashboard…</p>;
+  if (error) return <p className="error-text">{error}</p>;
+  if (!report) return <p className="loading-text">Loading dashboard…</p>;
 
   const { user, totals } = report;
   const accuracy = totals.attempts
@@ -54,30 +54,31 @@ export default function DashboardPage() {
   const levelPct = Math.round((user.level.currentXp / Math.max(1, user.level.nextLevelXp)) * 100);
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Welcome back, {user.name} 👋</h1>
+    <div className="fade-up">
+      <h1 className="page-title">Welcome back, {user.name} 👋</h1>
+      <p className="page-sub">Here&rsquo;s where your practice stands today.</p>
 
       {/* level + stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:col-span-2">
+        <div className="card p-5 sm:col-span-2">
           <div className="flex items-baseline justify-between">
-            <span className="text-sm font-semibold text-slate-500">LEVEL {user.level.level}</span>
-            <span className="text-xs text-slate-400">
+            <span className="eyebrow">Level {user.level.level}</span>
+            <span className="text-xs text-ink-faint">
               {user.level.currentXp}/{user.level.nextLevelXp} XP to next level
             </span>
           </div>
-          <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100">
-            <div className="bar-fill h-full rounded-full bg-indigo-500" style={{ width: `${levelPct}%` }} />
+          <div className="progress-track mt-3 h-3">
+            <div className="progress-fill bg-brand-600" style={{ width: `${levelPct}%` }} />
           </div>
-          <p className="mt-2 text-sm text-slate-600">{user.totalXp} total XP</p>
+          <p className="mt-2 text-sm text-ink-muted">{user.totalXp} total XP</p>
         </div>
         {[
           [`${accuracy}%`, "Accuracy"],
           [`${totals.dayStreak}🔥`, "Day streak"],
         ].map(([v, l]) => (
-          <div key={l} className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-            <p className="text-2xl font-extrabold">{v}</p>
-            <p className="text-sm text-slate-500">{l}</p>
+          <div key={l} className="card p-5 text-center">
+            <p className="text-3xl font-bold tracking-tight text-ink">{v}</p>
+            <p className="mt-1 text-sm text-ink-faint">{l}</p>
           </div>
         ))}
       </div>
@@ -89,37 +90,34 @@ export default function DashboardPage() {
           [report.passedCount + report.masteredCount, "Topics passed"],
           [Math.round(totals.timeSpentSec / 60), "Minutes practiced"],
         ].map(([v, l]) => (
-          <div key={l as string} className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-            <p className="text-2xl font-extrabold">{v}</p>
-            <p className="text-sm text-slate-500">{l}</p>
+          <div key={l as string} className="card p-5 text-center">
+            <p className="text-3xl font-bold tracking-tight text-ink">{v}</p>
+            <p className="mt-1 text-sm text-ink-faint">{l}</p>
           </div>
         ))}
       </div>
 
       {report.needsReviewCount > 0 && (
-        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="callout-danger mt-4">
           ⚠️ {report.needsReviewCount} topic{report.needsReviewCount > 1 ? "s" : ""} need review.{" "}
-          <Link href="/practice?mode=review" className="font-semibold underline">
+          <Link href="/practice?mode=review" className="font-semibold underline underline-offset-2">
             Start review mode →
           </Link>
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-5 lg:grid-cols-2">
         {/* recommended */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold">Recommended next topics</h2>
+        <div className="card p-5">
+          <h2 className="section-title">Recommended next topics</h2>
           {report.recommended.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-500">All topics passed — go for mastery! 🎓</p>
+            <p className="mt-2 text-sm text-ink-faint">All topics passed — go for mastery! 🎓</p>
           ) : (
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-3 divide-y divide-line">
               {report.recommended.map((t) => (
-                <li key={t.id} className="flex items-center justify-between text-sm">
-                  <span>{t.title}</span>
-                  <Link
-                    href={`/practice?topicId=${t.id}&mode=drill`}
-                    className="font-semibold text-indigo-600 hover:underline"
-                  >
+                <li key={t.id} className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-ink">{t.title}</span>
+                  <Link href={`/practice?topicId=${t.id}&mode=drill`} className="link">
                     Practice →
                   </Link>
                 </li>
@@ -129,22 +127,23 @@ export default function DashboardPage() {
         </div>
 
         {/* recent activity */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold">Recent activity</h2>
+        <div className="card p-5">
+          <h2 className="section-title">Recent activity</h2>
           {report.recentActivity.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-ink-faint">
               No attempts yet.{" "}
-              <Link href="/practice" className="font-semibold text-indigo-600 hover:underline">
+              <Link href="/practice" className="link">
                 Start practicing →
               </Link>
             </p>
           ) : (
-            <ul className="mt-3 space-y-1.5 text-sm">
+            <ul className="mt-3 divide-y divide-line text-sm">
               {report.recentActivity.map((a) => (
-                <li key={a.id} className="flex items-center justify-between">
-                  <span className="truncate pr-2">{a.topic}</span>
-                  <span className="shrink-0 text-slate-500">
-                    {RESULT_LABEL[a.result] ?? a.result} {a.xp > 0 && <b className="text-indigo-600">+{a.xp}</b>}
+                <li key={a.id} className="flex items-center justify-between py-1.5">
+                  <span className="truncate pr-2 text-ink">{a.topic}</span>
+                  <span className="shrink-0 text-ink-faint">
+                    {RESULT_LABEL[a.result] ?? a.result}{" "}
+                    {a.xp > 0 && <b className="text-brand-700">+{a.xp}</b>}
                   </span>
                 </li>
               ))}
@@ -153,12 +152,12 @@ export default function DashboardPage() {
         </div>
 
         {/* accuracy by topic */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold">Accuracy by topic</h2>
+        <div className="card p-5">
+          <h2 className="section-title">Accuracy by topic</h2>
           {report.accuracyByTopic.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-500">Attempt problems to see accuracy stats.</p>
+            <p className="mt-2 text-sm text-ink-faint">Attempt problems to see accuracy stats.</p>
           ) : (
-            <ul className="mt-3 space-y-2 text-sm">
+            <ul className="mt-3 space-y-3 text-sm">
               {report.accuracyByTopic
                 .slice()
                 .sort((a, b) => a.correct / a.total - b.correct / b.total)
@@ -166,14 +165,14 @@ export default function DashboardPage() {
                 .map((t) => (
                   <li key={t.topicId}>
                     <div className="flex justify-between">
-                      <span className="truncate pr-2">{t.title}</span>
-                      <span className="text-slate-500">
+                      <span className="truncate pr-2 text-ink">{t.title}</span>
+                      <span className="text-ink-faint">
                         {t.correct}/{t.total} ({t.firstTry} first-try)
                       </span>
                     </div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="progress-track mt-1.5 h-1.5">
                       <div
-                        className="h-full rounded-full bg-green-500"
+                        className="progress-fill bg-green-600"
                         style={{ width: `${(t.correct / t.total) * 100}%` }}
                       />
                     </div>
@@ -184,25 +183,25 @@ export default function DashboardPage() {
         </div>
 
         {/* weak skills + difficulty */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold">Weak skills</h2>
+        <div className="card p-5">
+          <h2 className="section-title">Weak skills</h2>
           {report.mostMissedTags.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-500">No misses recorded — keep it up!</p>
+            <p className="mt-2 text-sm text-ink-faint">No misses recorded — keep it up!</p>
           ) : (
             <div className="mt-3 flex flex-wrap gap-2">
               {report.mostMissedTags.map((t) => (
-                <span key={t.tag} className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                <span key={t.tag} className="chip-danger">
                   {t.tag} ×{t.count}
                 </span>
               ))}
             </div>
           )}
-          <h2 className="mt-5 font-bold">Accuracy by difficulty</h2>
-          <ul className="mt-2 space-y-1 text-sm">
+          <h2 className="section-title mt-6">Accuracy by difficulty</h2>
+          <ul className="mt-2 divide-y divide-line text-sm">
             {report.accuracyByDifficulty.map((d) => (
-              <li key={d.band} className="flex justify-between">
-                <span>{d.band}</span>
-                <span className="text-slate-500">
+              <li key={d.band} className="flex justify-between py-1.5">
+                <span className="text-ink">{d.band}</span>
+                <span className="text-ink-faint">
                   {d.correct}/{d.total} ({d.total ? Math.round((d.correct / d.total) * 100) : 0}%)
                 </span>
               </li>
@@ -212,20 +211,20 @@ export default function DashboardPage() {
       </div>
 
       {/* topic ratings */}
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="font-bold">Topic ratings</h2>
+      <div className="card mt-5 p-5">
+        <h2 className="section-title">Topic ratings</h2>
         {report.topicProgress.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">Practice a topic to start building its rating.</p>
+          <p className="mt-2 text-sm text-ink-faint">Practice a topic to start building its rating.</p>
         ) : (
-          <div className="mt-3 grid gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
+          <div className="mt-3 grid gap-x-10 gap-y-1.5 text-sm sm:grid-cols-2">
             {report.topicProgress
               .slice()
               .sort((a, b) => b.rating - a.rating)
               .map((t) => {
                 const c = STATUS_COLORS[t.status] ?? STATUS_COLORS.not_started;
                 return (
-                  <div key={t.topicId} className="flex items-center justify-between">
-                    <span className="truncate pr-2">{t.title}</span>
+                  <div key={t.topicId} className="flex items-center justify-between border-b border-line py-1 last:border-0">
+                    <span className="truncate pr-2 text-ink">{t.title}</span>
                     <span className={`shrink-0 font-mono font-semibold ${c.text}`}>{t.rating}</span>
                   </div>
                 );

@@ -38,40 +38,65 @@ export default function ImportPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold">Bulk import questions</h1>
-      <p className="mt-2 text-sm text-slate-600">
+    <div className="fade-up mx-auto max-w-3xl">
+      <h1 className="page-title">Bulk import questions</h1>
+      <p className="page-sub">
         Paste CSV or JSON (or load a file). Subtopic names are matched by slug (e.g.{" "}
-        <code className="rounded bg-slate-100 px-1">Damping Ratio → damping-ratio</code>). For text
-        answers use <code className="rounded bg-slate-100 px-1">|</code> to separate accepted variants.
+        <code className="rounded bg-sunken px-1 font-mono text-xs">Damping Ratio → damping-ratio</code>). For text
+        answers use <code className="rounded bg-sunken px-1 font-mono text-xs">|</code> to separate accepted variants.
       </p>
-      <details className="mt-2 text-xs text-slate-500">
-        <summary className="cursor-pointer font-semibold">CSV columns</summary>
-        <code className="mt-1 block rounded bg-slate-100 p-2">{CSV_HEADER}</code>
+      <details className="card mt-4 p-4 text-xs text-ink-muted">
+        <summary className="cursor-pointer font-semibold text-ink">CSV columns</summary>
+        <code className="mt-2 block rounded-(--radius-control) bg-sunken p-2 font-mono">{CSV_HEADER}</code>
+        <ul className="mt-2 list-inside list-disc space-y-1">
+          <li>
+            <code className="rounded bg-sunken px-1 font-mono">solution</code> and{" "}
+            <code className="rounded bg-sunken px-1 font-mono">explanation</code> may be left blank — a
+            worked solution is generated automatically the first time a learner finishes the
+            question.
+          </li>
+          <li>
+            <code className="rounded bg-sunken px-1 font-mono">answer_type</code>:{" "}
+            multiple_choice_single, numerical_tolerance, true_false, or text_short.
+          </li>
+          <li>
+            Math goes in <code className="rounded bg-sunken px-1 font-mono">$…$</code> (inline) or{" "}
+            <code className="rounded bg-sunken px-1 font-mono">$$…$$</code> (display) LaTeX.
+          </li>
+          <li>
+            <code className="rounded bg-sunken px-1 font-mono">difficulty</code> is 1–10;{" "}
+            <code className="rounded bg-sunken px-1 font-mono">skill_tags</code> are separated by{" "}
+            <code className="rounded bg-sunken px-1 font-mono">;</code>.
+          </li>
+        </ul>
       </details>
 
-      <input type="file" accept=".csv,.json,.txt" onChange={onFile} className="mt-4 text-sm" />
+      <a href="/api/admin/import/template" download className="btn-secondary mt-5">
+        ⬇ Download CSV template
+      </a>
+      <p className="mt-2 text-xs text-ink-faint">
+        Hand this file to question writers — it has one example row per answer type. They fill in
+        rows (Excel or Google Sheets, save/export as CSV), you upload the file below.
+      </p>
+
+      <input type="file" accept=".csv,.json,.txt" onChange={onFile} className="mt-5 block text-sm text-ink-muted" />
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={12}
         placeholder="Paste CSV rows or a JSON array here…"
-        className="mt-3 w-full rounded-lg border border-slate-300 p-3 font-mono text-xs"
+        className="input mt-3 p-3 font-mono text-xs"
       />
-      <button
-        onClick={submit}
-        disabled={busy || !text.trim()}
-        className="mt-3 rounded bg-indigo-600 px-6 py-2 font-semibold text-white disabled:opacity-40"
-      >
+      <button onClick={submit} disabled={busy || !text.trim()} className="btn-primary mt-4">
         {busy ? "Importing…" : "Import"}
       </button>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="callout-danger mt-4">{error}</p>}
       {result && (
-        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm">
-          <p className="font-bold text-green-700">✓ Imported {result.created} problem(s)</p>
+        <div className="card mt-4 p-4 text-sm">
+          <p className="font-semibold text-green-700">✓ Imported {result.created} problem(s)</p>
           {result.errors.length > 0 && (
-            <ul className="mt-2 list-inside list-disc text-red-600">
+            <ul className="mt-2 list-inside list-disc text-red-700">
               {result.errors.map((e, i) => (
                 <li key={i}>{e}</li>
               ))}

@@ -114,49 +114,50 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
     router.push("/admin");
   }
 
-  if (!loaded) return <p className="mt-8 animate-pulse text-slate-400">Loading…</p>;
+  if (!loaded) return <p className="loading-text">Loading…</p>;
 
   const answerData = v.answerData as Record<string, unknown>;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="fade-up mx-auto max-w-3xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{problemId ? "Edit problem" : "New problem"}</h1>
-        <button onClick={() => setPreview((p) => !p)} className="rounded border border-slate-300 px-3 py-1.5 text-sm font-semibold">
+        <h1 className="page-title">{problemId ? "Edit problem" : "New problem"}</h1>
+        <button onClick={() => setPreview((p) => !p)} className="btn-secondary btn-sm">
           {preview ? "✏️ Edit" : "👁 Preview as learner"}
         </button>
       </div>
 
       {preview ? (
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
-            Difficulty {v.difficulty}/10
-          </span>
-          <div className="mt-4 leading-relaxed"><Latex>{v.statement || "*empty statement*"}</Latex></div>
+        <div className="card mt-6 p-6">
+          <span className="chip-neutral">Difficulty {v.difficulty}/10</span>
+          <div className="mt-4 leading-relaxed text-ink"><Latex>{v.statement || "*empty statement*"}</Latex></div>
           {v.answerType.startsWith("multiple_choice") && (
             <div className="mt-4 space-y-2">
               {v.choices.filter((c) => c.text).map((c) => (
-                <div key={c.label} className={`rounded-lg border p-3 ${
-                  c.label === answerData.correct ? "border-green-400 bg-green-50" : "border-slate-200"
-                }`}>
+                <div
+                  key={c.label}
+                  className={`rounded-(--radius-control) border p-3 ${
+                    c.label === answerData.correct ? "border-green-400 bg-green-50" : "border-line"
+                  }`}
+                >
                   <b>{c.label}.</b> <Latex>{c.text}</Latex>
                 </div>
               ))}
             </div>
           )}
           {v.solution && (
-            <div className="mt-4 rounded bg-slate-50 p-4">
-              <p className="text-xs font-bold text-slate-500">SOLUTION</p>
+            <div className="mt-4 rounded-(--radius-control) border border-line bg-sunken p-4">
+              <p className="eyebrow">Solution</p>
               <div className="mt-1 leading-relaxed"><Latex>{v.solution}</Latex></div>
             </div>
           )}
         </div>
       ) : (
-        <div className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-white p-6 text-sm">
+        <div className="card mt-6 space-y-4 p-6 text-sm">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="font-semibold">Topic</span>
-              <select value={v.topicId} onChange={(e) => set("topicId", e.target.value)} className="mt-1 w-full rounded border border-slate-300 px-2 py-2">
+              <span className="label">Topic</span>
+              <select value={v.topicId} onChange={(e) => set("topicId", e.target.value)} className="input">
                 <option value="">— select topic —</option>
                 {topics.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -166,8 +167,8 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
               </select>
             </label>
             <label className="block">
-              <span className="font-semibold">Answer type</span>
-              <select value={v.answerType} onChange={(e) => setAnswerType(e.target.value)} className="mt-1 w-full rounded border border-slate-300 px-2 py-2">
+              <span className="label">Answer type</span>
+              <select value={v.answerType} onChange={(e) => setAnswerType(e.target.value)} className="input">
                 <option value="multiple_choice_single">Multiple choice (single)</option>
                 <option value="numerical_tolerance">Numerical (tolerance)</option>
                 <option value="text_short">Short text</option>
@@ -178,13 +179,18 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
           </div>
 
           <label className="block">
-            <span className="font-semibold">Problem statement (LaTeX via $…$ and $$…$$)</span>
-            <textarea value={v.statement} onChange={(e) => set("statement", e.target.value)} rows={4} className="mt-1 w-full rounded border border-slate-300 p-2 font-mono" />
+            <span className="label">Problem statement (LaTeX via $…$ and $$…$$)</span>
+            <textarea
+              value={v.statement}
+              onChange={(e) => set("statement", e.target.value)}
+              rows={4}
+              className="input font-mono"
+            />
           </label>
 
           {v.answerType.startsWith("multiple_choice") && (
             <div className="space-y-2">
-              <span className="font-semibold">Choices (mark correct)</span>
+              <span className="label">Choices (mark correct)</span>
               {v.choices.map((c, i) => (
                 <div key={c.label} className="flex items-center gap-2">
                   <input
@@ -192,6 +198,7 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
                     name="correct"
                     checked={answerData.correct === c.label}
                     onChange={() => set("answerData", { correct: c.label })}
+                    className="accent-brand-600"
                   />
                   <b>{c.label}</b>
                   <input
@@ -201,7 +208,7 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
                       next[i] = { ...c, text: e.target.value };
                       set("choices", next);
                     }}
-                    className="flex-1 rounded border border-slate-300 px-2 py-1.5"
+                    className="input flex-1 py-1.5"
                   />
                 </div>
               ))}
@@ -211,29 +218,29 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
           {v.answerType === "numerical_tolerance" && (
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="block">
-                <span className="font-semibold">Correct value</span>
+                <span className="label">Correct value</span>
                 <input
                   type="number" step="any"
                   value={String(answerData.value ?? "")}
                   onChange={(e) => set("answerData", { ...answerData, value: parseFloat(e.target.value) })}
-                  className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5"
+                  className="input py-1.5"
                 />
               </label>
               <label className="block">
-                <span className="font-semibold">Relative tol (e.g. 0.02)</span>
+                <span className="label">Relative tol (e.g. 0.02)</span>
                 <input
                   type="number" step="any"
                   value={String(answerData.toleranceRel ?? "")}
                   onChange={(e) => set("answerData", { ...answerData, toleranceRel: e.target.value === "" ? undefined : parseFloat(e.target.value) })}
-                  className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5"
+                  className="input py-1.5"
                 />
               </label>
               <label className="block">
-                <span className="font-semibold">Unit (optional)</span>
+                <span className="label">Unit (optional)</span>
                 <input
                   value={String(answerData.unit ?? "")}
                   onChange={(e) => set("answerData", { ...answerData, unit: e.target.value || undefined })}
-                  className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5"
+                  className="input py-1.5"
                 />
               </label>
             </div>
@@ -241,23 +248,23 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
 
           {(v.answerType === "text_short" || v.answerType === "algebraic_expression") && (
             <label className="block">
-              <span className="font-semibold">Accepted answers (one per line)</span>
+              <span className="label">Accepted answers (one per line)</span>
               <textarea
                 value={((answerData.accepted as string[]) ?? []).join("\n")}
                 onChange={(e) => set("answerData", { accepted: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
                 rows={3}
-                className="mt-1 w-full rounded border border-slate-300 p-2 font-mono"
+                className="input font-mono"
               />
             </label>
           )}
 
           {v.answerType === "true_false" && (
             <label className="block">
-              <span className="font-semibold">Correct answer</span>
+              <span className="label">Correct answer</span>
               <select
                 value={String(answerData.correct)}
                 onChange={(e) => set("answerData", { correct: e.target.value === "true" })}
-                className="mt-1 rounded border border-slate-300 px-2 py-1.5"
+                className="input w-auto py-1.5"
               >
                 <option value="true">True</option>
                 <option value="false">False</option>
@@ -267,24 +274,34 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
 
           <div className="grid gap-4 sm:grid-cols-4">
             <label className="block">
-              <span className="font-semibold">Difficulty (1–10)</span>
-              <input type="number" min={1} max={10} value={v.difficulty} onChange={(e) => set("difficulty", parseInt(e.target.value, 10) || 5)} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5" />
+              <span className="label">Difficulty (1–10)</span>
+              <input
+                type="number" min={1} max={10}
+                value={v.difficulty}
+                onChange={(e) => set("difficulty", parseInt(e.target.value, 10) || 5)}
+                className="input py-1.5"
+              />
             </label>
             <label className="block">
-              <span className="font-semibold">Cognitive level</span>
-              <select value={v.cognitiveLevel} onChange={(e) => set("cognitiveLevel", e.target.value)} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
+              <span className="label">Cognitive level</span>
+              <select value={v.cognitiveLevel} onChange={(e) => set("cognitiveLevel", e.target.value)} className="input py-1.5">
                 {["recall", "comprehension", "application", "analysis", "synthesis"].map((l) => (
                   <option key={l} value={l}>{l}</option>
                 ))}
               </select>
             </label>
             <label className="block">
-              <span className="font-semibold">Est. time (s)</span>
-              <input type="number" value={v.estimatedTime} onChange={(e) => set("estimatedTime", parseInt(e.target.value, 10) || 120)} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5" />
+              <span className="label">Est. time (s)</span>
+              <input
+                type="number"
+                value={v.estimatedTime}
+                onChange={(e) => set("estimatedTime", parseInt(e.target.value, 10) || 120)}
+                className="input py-1.5"
+              />
             </label>
             <label className="block">
-              <span className="font-semibold">Status</span>
-              <select value={v.status} onChange={(e) => set("status", e.target.value)} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
+              <span className="label">Status</span>
+              <select value={v.status} onChange={(e) => set("status", e.target.value)} className="input py-1.5">
                 {["draft", "reviewed", "active", "archived"].map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -293,30 +310,48 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
           </div>
 
           <label className="block">
-            <span className="font-semibold">Hints (one per line)</span>
-            <textarea value={v.hints.join("\n")} onChange={(e) => set("hints", e.target.value.split("\n").filter((s) => s.trim()))} rows={2} className="mt-1 w-full rounded border border-slate-300 p-2" />
+            <span className="label">Hints (one per line)</span>
+            <textarea
+              value={v.hints.join("\n")}
+              onChange={(e) => set("hints", e.target.value.split("\n").filter((s) => s.trim()))}
+              rows={2}
+              className="input"
+            />
           </label>
 
           <label className="block">
-            <span className="font-semibold">Full solution (LaTeX + **bold** supported)</span>
-            <textarea value={v.solution} onChange={(e) => set("solution", e.target.value)} rows={5} className="mt-1 w-full rounded border border-slate-300 p-2 font-mono" />
+            <span className="label">Full solution (LaTeX + **bold** supported)</span>
+            <textarea
+              value={v.solution}
+              onChange={(e) => set("solution", e.target.value)}
+              rows={5}
+              className="input font-mono"
+            />
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="font-semibold">Tags (comma-separated)</span>
-              <input value={v.tags.join(", ")} onChange={(e) => set("tags", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5" />
+              <span className="label">Tags (comma-separated)</span>
+              <input
+                value={v.tags.join(", ")}
+                onChange={(e) => set("tags", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                className="input py-1.5"
+              />
             </label>
             <label className="block">
-              <span className="font-semibold">Reference</span>
-              <input value={v.reference} onChange={(e) => set("reference", e.target.value)} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5" />
+              <span className="label">Reference</span>
+              <input
+                value={v.reference}
+                onChange={(e) => set("reference", e.target.value)}
+                className="input py-1.5"
+              />
             </label>
           </div>
 
-          {error && <p className="text-red-600">{error}</p>}
+          {error && <p className="callout-danger">{error}</p>}
 
           <div className="flex gap-3 pt-2">
-            <button onClick={save} disabled={saving || !v.topicId || !v.statement} className="rounded bg-indigo-600 px-6 py-2 font-semibold text-white hover:bg-indigo-700 disabled:opacity-40">
+            <button onClick={save} disabled={saving || !v.topicId || !v.statement} className="btn-primary">
               {saving ? "Saving…" : "Save problem"}
             </button>
             {problemId && (
@@ -326,7 +361,7 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
                   await fetch(`/api/admin/problems/${problemId}`, { method: "DELETE" });
                   router.push("/admin");
                 }}
-                className="rounded border border-red-300 px-4 py-2 font-semibold text-red-600 hover:bg-red-50"
+                className="btn-danger-outline"
               >
                 Archive
               </button>
