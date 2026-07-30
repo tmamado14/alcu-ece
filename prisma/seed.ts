@@ -28,6 +28,37 @@ function hashPassword(password: string): string {
   return `${salt}:${hash}`;
 }
 
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+/**
+ * The admin password. `admin123` is published in the README, so a deployed
+ * database must never be seeded with it — set SEED_ADMIN_PASSWORD instead.
+ */
+function adminPassword(): string {
+  const fromEnv = process.env.SEED_ADMIN_PASSWORD;
+  if (fromEnv && fromEnv.length >= 8) return fromEnv;
+  if (fromEnv) throw new Error("SEED_ADMIN_PASSWORD must be at least 8 characters");
+  if (IS_PRODUCTION) {
+    throw new Error(
+      "Refusing to seed the default admin password into a production database. " +
+        "Set SEED_ADMIN_PASSWORD to a strong password and rerun."
+    );
+  }
+  console.warn("  ! Using the default admin password (admin123) — development only.");
+  return "admin123";
+}
+
+/**
+ * The demo learner exists for local trial runs. On a shared deployment real
+ * people should each redeem an invite instead, so it is skipped unless asked
+ * for explicitly.
+ */
+function shouldSeedDemoLearner(): boolean {
+  if (process.env.SEED_DEMO_LEARNER === "1") return true;
+  if (process.env.SEED_DEMO_LEARNER === "0") return false;
+  return !IS_PRODUCTION;
+}
+
 // ---------- Curriculum ----------
 
 interface TopicSeed {
@@ -806,7 +837,7 @@ async function ensureAdmin() {
       username: "admin",
       email: "admin@ece-mastery.local",
       name: "Admin",
-      passwordHash: hashPassword("admin123"),
+      passwordHash: hashPassword(adminPassword()),
       role: "admin",
     },
   });
@@ -866,19 +897,21 @@ async function main() {
       username: "admin",
       email: "admin@ece-mastery.local",
       name: "Admin",
-      passwordHash: hashPassword("admin123"),
+      passwordHash: hashPassword(adminPassword()),
       role: "admin",
     },
   });
-  await prisma.user.create({
-    data: {
-      username: "learner",
-      email: "learner@ece-mastery.local",
-      name: "Tim",
-      passwordHash: hashPassword("learner123"),
-      role: "learner",
-    },
-  });
+  if (shouldSeedDemoLearner()) {
+    await prisma.user.create({
+      data: {
+        username: "learner",
+        email: "learner@ece-mastery.local",
+        name: "Tim",
+        passwordHash: hashPassword(process.env.SEED_LEARNER_PASSWORD || "learner123"),
+        role: "learner",
+      },
+    });
+  }
 
   // subjects + topics + problems
   let topicCount = 0;
@@ -894,7 +927,11 @@ async function main() {
   await upsertGamificationCatalog();
 
   console.log(`Seeded ${SUBJECTS.length} subjects, ${topicCount} topics, ${count} problems, ${BADGES.length} badges, ${QUESTS.length} quests, ${ACHIEVEMENTS.length} achievements.`);
-  console.log("Accounts: admin/admin123 (admin), learner/learner123 (learner)");
+  console.log(
+    shouldSeedDemoLearner()
+      ? "Accounts: admin (admin), learner (learner) — see SEED_ADMIN_PASSWORD / SEED_LEARNER_PASSWORD."
+      : "Account: admin (admin). Invite everyone else from Admin > Invites."
+  );
 }
 
 main()

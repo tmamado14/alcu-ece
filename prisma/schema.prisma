@@ -1,14 +1,21 @@
 // ECE Mastery — database schema
-// SQLite for local-first development; switch provider to "postgresql"
-// and update DATABASE_URL when moving to a hosted multi-user deployment.
+//
+// Postgres (Neon). Two URLs are needed:
+//   DATABASE_URL — the *pooled* connection, used by the app at runtime.
+//     Serverless functions each open their own connection, so an unpooled
+//     URL exhausts the database's connection slots under load.
+//   DIRECT_URL   — the *unpooled* connection, used by `prisma migrate`,
+//     which needs a session-level connection that a pooler cannot provide.
+// Both are in the Neon dashboard under "Connection string".
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------- Users ----------

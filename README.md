@@ -5,8 +5,11 @@ An adaptive, gamified problem-practice platform for Electronics Engineering subj
 tries, read full step-by-step solutions, and watch topic mastery bars move from *learning* →
 *passed* → *mastered* while earning XP, badges, and quests.
 
-Local-first and personal-use today; architected so online accounts, teacher dashboards, and more
-ECE subjects (Signals and Systems, Communications, Electromagnetics, …) can be added later.
+Runs locally for solo study, or online for a group — see
+[section 4](#4-deploying-online-vercel--neon) for the free Vercel + Neon deployment. Signup is
+invite-only, and every account keeps its own progress, ratings, and badges. Architected so teacher
+dashboards and more ECE subjects (Signals and Systems, Communications, Electromagnetics, …) can be
+added later.
 
 ---
 
@@ -15,7 +18,9 @@ ECE subjects (Signals and Systems, Communications, Electromagnetics, …) can be
 ### Prerequisites
 
 - **Node.js 20 or newer** (check with `node --version`; download from https://nodejs.org)
-- No database server needed — the app uses a local SQLite file via Prisma.
+- **A Postgres database.** The quickest option is a free [Neon](https://neon.com) project — create
+  one, add a branch called `dev`, and use its connection strings below. See
+  [section 4](#4-deploying-online-vercel--neon) for the full picture.
 
 ### First-time setup
 
@@ -26,12 +31,15 @@ Open a terminal in the project folder and run:
 copy .env.example .env        # Windows (cmd/PowerShell)
 # cp .env.example .env        # macOS/Linux/Git Bash
 
-# 2. Install dependencies, create the database, and load seed data — one command:
+# 2. Edit .env: paste your Neon *dev* branch strings into DATABASE_URL (the
+#    pooled one) and DIRECT_URL (the direct one).
+
+# 3. Install dependencies, create the tables, and load seed data — one command:
 npm run setup
 ```
 
-`npm run setup` does four things: `npm install` → `prisma generate` → `prisma db push`
-(creates `prisma/dev.db`) → runs the seed script (2 subjects, 22 topic groups, 117 subtopics, 585
+`npm run setup` does four things: `npm install` → `prisma generate` → `prisma migrate deploy`
+(creates the tables) → runs the seed script (2 subjects, 22 topic groups, 117 subtopics, 585
 problems, and the demo accounts).
 
 Each subject's curriculum is defined in `prisma/seed.ts` and its question bank in a CSV beside it:
@@ -43,7 +51,7 @@ Each subject's curriculum is defined in `prisma/seed.ts` and its question bank i
 
 Rerunning the seed on an existing database is safe: subjects already in the database are left alone
 (along with all attempts, XP, and earned badges), and any subject newly added to `seed.ts` is
-created. Use `SEED_RESET=1 npx prisma db seed` for a full wipe and reseed.
+created. Use `SEED_RESET=1 npm run db:seed` for a full wipe and reseed.
 
 ### Start the app
 
@@ -66,7 +74,8 @@ Then open **http://localhost:3000** and log in with one of the seeded accounts:
 | `npm run build`   | Production build                                          |
 | `npm start`       | Serve the production build                                |
 | `npm test`        | Run the unit tests (grading, adaptive engine, gamification) |
-| `npm run db:seed` | **Wipe and re-seed** the database back to a fresh state   |
+| `npm run db:seed` | Load seed data; adds new subjects, keeps existing user data |
+| `npm run db:migrate` | Create a migration after editing `prisma/schema.prisma` |
 
 ### Choosing what to master first (Focus)
 
@@ -97,15 +106,18 @@ Two options:
 - **Just your progress** (attempts, XP, badges, quests — keeps the question bank):
   log in → **Settings** → *Danger zone* → **Reset my progress**.
 - **Everything back to factory state** (also removes any questions you added):
-  `npm run db:seed`.
+  `SEED_RESET=1 npm run db:seed`. Without `SEED_RESET=1` the seed is additive and preserves
+  accounts and progress.
 
 ### Troubleshooting
 
 - **"Environment variable not found: DATABASE_URL"** — you skipped step 1; create `.env` from
   `.env.example`.
 - **Login fails with the seeded accounts** — the database was never seeded; run `npm run db:seed`.
+- **"Environment variable not found: DIRECT_URL"** — add the unpooled Neon string to `.env`;
+  `prisma migrate` needs it even though the app itself does not.
 - **Port 3000 already in use** — run `npm run dev -- -p 3001` and open that port instead.
-- **Prisma client errors after pulling new code** — run `npx prisma generate && npx prisma db push`.
+- **Prisma client errors after pulling new code** — run `npx prisma generate && npm run db:deploy`.
 
 ---
 
@@ -306,10 +318,94 @@ tests/          vitest unit tests for all core logic
 
 ### Tech stack & future expansion
 
-Next.js 15 + TypeScript + Tailwind CSS 4 + Prisma + KaTeX + Zod + Vitest. SQLite is used for
-zero-setup local development; to move to PostgreSQL, change the `datasource` provider in
-`prisma/schema.prisma` to `postgresql`, point `DATABASE_URL` at your server, and run
-`prisma db push` — no SQLite-specific features are used. Auth is local (scrypt + signed session
-cookies) behind `requireUser()`/`requireAdmin()`, so OAuth can be swapped in by replacing one
-module. Class/enrollment/assignment tables already exist as placeholders for future teacher
-dashboards.
+Next.js 15 + TypeScript + Tailwind CSS 4 + Prisma + PostgreSQL + KaTeX + Zod + Vitest. Auth is
+local (scrypt + signed session cookies) behind `requireUser()`/`requireAdmin()`, so OAuth can be
+swapped in by replacing one module. Class/enrollment/assignment tables already exist as
+placeholders for future teacher dashboards.
+
+---
+
+## 4. Deploying online (Vercel + Neon)
+
+The app runs on **Vercel** (free Hobby plan) with **Neon** serverless Postgres (free plan). Total
+cost: nothing, for a study group's worth of traffic.
+
+> Vercel's Hobby plan is for personal, non-commercial use. A free study tool for classmates is
+> fine; charging for access or running ads on it is not, and needs a Pro plan.
+
+### 4.1 Create the database
+
+1. Sign up at [neon.com](https://neon.com) and create a project.
+2. Create a second **branch** named `dev` (Branches → New branch). Production uses `main`, your
+   laptop uses `dev`, so local experiments never touch your colleagues' data.
+3. For each branch, open **Connect** and copy two strings:
+   - the **pooled** one (host contains `-pooler`) → `DATABASE_URL`
+   - the **direct/unpooled** one → `DIRECT_URL`
+
+### 4.2 Point your laptop at the dev branch
+
+Put the `dev` branch strings in your local `.env`, then create the tables and load the questions:
+
+```bash
+npm run db:deploy   # applies prisma/migrations to the dev branch
+npm run db:seed     # loads both subjects and the gamification catalog
+npm run dev
+```
+
+### 4.3 Deploy to Vercel
+
+1. Sign up at [vercel.com](https://vercel.com) with your GitHub account and **import** the
+   `alcu-ece` repository. Framework preset: Next.js (auto-detected). Do not deploy yet.
+2. Add these **Environment Variables** (all environments):
+
+   | Name | Value |
+   | --- | --- |
+   | `DATABASE_URL` | Neon **main** branch, **pooled** string |
+   | `DIRECT_URL` | Neon **main** branch, **direct** string |
+   | `SESSION_SECRET` | a long random string — see below |
+   | `SEED_ADMIN_PASSWORD` | the admin password you want (min 8 chars) |
+   | `DEEPSEEK_API_KEY` | optional, only for AI solution generation |
+
+   Generate the session secret with:
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+   The app **refuses to start** in production if `SESSION_SECRET` is missing, shorter than 32
+   characters, or left at the placeholder — a guessable secret would let anyone forge an admin
+   session cookie.
+3. Press **Deploy**. Vercel runs `npm run vercel-build`, which applies migrations
+   (`prisma migrate deploy`) before building, so the schema is always in step with the code.
+
+### 4.4 Load the questions into production, once
+
+From your laptop, with the **main** branch strings temporarily in `.env`:
+
+```bash
+SEED_ADMIN_PASSWORD='your-real-password' npm run db:seed
+```
+
+This creates the admin account and both question banks. The demo `learner` account is **not**
+created when `NODE_ENV=production`; set `SEED_DEMO_LEARNER=1` if you want it anyway.
+
+Rerunning the seed later is safe: it only adds subjects that aren't in the database yet and
+refreshes the badge/quest/achievement catalog. Attempts, XP, and accounts are never touched.
+
+### 4.5 Invite your colleagues
+
+Log in as `admin`, go to **Admin → Invites**, create a code, and send each person the copied link.
+See [2.7](#27-inviting-other-people-admin--invites). Never share the admin login — admins can edit
+and delete the question bank.
+
+### 4.6 Things worth knowing
+
+- **First request is slow.** Neon's free plan suspends the database after 5 minutes idle, so the
+  first hit after a quiet spell waits a second or two while it wakes. Subsequent requests are fast.
+- **Free-plan headroom.** Neon free gives 0.5 GB storage and 100 CU-hours/month; this database is a
+  few MB and idles at zero cost, so a study group will not come close.
+- **Backups.** The question bank is the irreplaceable part, and it lives in `prisma/*.csv` in git.
+  After bulk edits in the admin UI, use **Admin → Export CSV** and commit the result.
+- **Migrations.** After changing `prisma/schema.prisma`, run `npm run db:migrate` locally to
+  generate a migration, then commit it. Vercel applies it on the next deploy. Never run
+  `prisma db push` against production — it can drop columns without warning.
