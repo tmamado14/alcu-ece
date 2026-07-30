@@ -41,32 +41,33 @@ export default function ImportPage() {
     <div className="fade-up mx-auto max-w-3xl">
       <h1 className="page-title">Bulk import questions</h1>
       <p className="page-sub">
-        Paste CSV or JSON (or load a file). Subtopic names are matched by slug (e.g.{" "}
-        <code className="rounded bg-sunken px-1 font-mono text-xs">Damping Ratio → damping-ratio</code>). For text
-        answers use <code className="rounded bg-sunken px-1 font-mono text-xs">|</code> to separate accepted variants.
+        Paste CSV or JSON (or load a file). A subtopic is matched by its exact title (e.g.{" "}
+        <code className="border border-line bg-sunken px-1 font-mono text-xs">Routh-Hurwitz Criterion</code>) or by its
+        slug. For text answers use{" "}
+        <code className="border border-line bg-sunken px-1 font-mono text-xs">|</code> to separate accepted variants.
       </p>
       <details className="card mt-4 p-4 text-xs text-ink-muted">
         <summary className="cursor-pointer font-semibold text-ink">CSV columns</summary>
         <code className="mt-2 block rounded-(--radius-control) bg-sunken p-2 font-mono">{CSV_HEADER}</code>
         <ul className="mt-2 list-inside list-disc space-y-1">
           <li>
-            <code className="rounded bg-sunken px-1 font-mono">solution</code> and{" "}
-            <code className="rounded bg-sunken px-1 font-mono">explanation</code> may be left blank — a
+            <code className="border border-line bg-sunken px-1 font-mono">solution</code> and{" "}
+            <code className="border border-line bg-sunken px-1 font-mono">explanation</code> may be left blank — a
             worked solution is generated automatically the first time a learner finishes the
             question.
           </li>
           <li>
-            <code className="rounded bg-sunken px-1 font-mono">answer_type</code>:{" "}
+            <code className="border border-line bg-sunken px-1 font-mono">answer_type</code>:{" "}
             multiple_choice_single, numerical_tolerance, true_false, or text_short.
           </li>
           <li>
-            Math goes in <code className="rounded bg-sunken px-1 font-mono">$…$</code> (inline) or{" "}
-            <code className="rounded bg-sunken px-1 font-mono">$$…$$</code> (display) LaTeX.
+            Math goes in <code className="border border-line bg-sunken px-1 font-mono">$…$</code> (inline) or{" "}
+            <code className="border border-line bg-sunken px-1 font-mono">$$…$$</code> (display) LaTeX.
           </li>
           <li>
-            <code className="rounded bg-sunken px-1 font-mono">difficulty</code> is 1–10;{" "}
-            <code className="rounded bg-sunken px-1 font-mono">skill_tags</code> are separated by{" "}
-            <code className="rounded bg-sunken px-1 font-mono">;</code>.
+            <code className="border border-line bg-sunken px-1 font-mono">difficulty</code> is 1–10;{" "}
+            <code className="border border-line bg-sunken px-1 font-mono">skill_tags</code> are separated by{" "}
+            <code className="border border-line bg-sunken px-1 font-mono">;</code>.
           </li>
         </ul>
       </details>

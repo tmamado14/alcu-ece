@@ -13,8 +13,11 @@ function progressScore(rating: number, masteryThreshold: number): number {
 
 export const GET = handle(async (req: Request) => {
   const user = await requireUser();
-  const slug = new URL(req.url).searchParams.get("subject") ?? "feedback-control-systems";
-  const subject = await prisma.subject.findUnique({ where: { slug } });
+  // No ?subject=: report on the first subject in curriculum order.
+  const slug = new URL(req.url).searchParams.get("subject");
+  const subject = slug
+    ? await prisma.subject.findUnique({ where: { slug } })
+    : await prisma.subject.findFirst({ orderBy: { sortOrder: "asc" } });
   if (!subject) return fail("Subject not found", 404);
 
   const [topics, progress, attempts] = await Promise.all([

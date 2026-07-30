@@ -12,9 +12,11 @@ import {
   type TopicProgressState,
   type TopicStatus,
 } from "@/lib/adaptive";
+import { FOCUS_TARGET_BOOST } from "@/lib/adaptive";
 import { gradeAnswer, type AnswerData, type AnswerType } from "@/lib/grading";
 import { xpForAttempt } from "@/lib/gamification";
 import { ensureSolution } from "@/lib/solution-gen";
+import { getFocus, focusTopicIds, type FocusSummary } from "./focus";
 import { awardXP, evaluateBadges, evaluateAchievements, updateQuestProgress } from "./gamification";
 
 const PENDING = "pending";
@@ -42,20 +44,38 @@ function toProgressState(p: {
   return { ...p, status: p.status as TopicStatus };
 }
 
+export interface NextProblemResult {
+  problem: NextProblemPayload | null;
+  /** The active learning goal, when one shaped this selection. */
+  focus: FocusSummary | null;
+}
+
+/** @param subjectId Restrict adaptive practice to one subject, or null for all of them. */
 export async function selectNextProblem(
   userId: string,
-  subjectId: string,
+  subjectId: string | null,
   topicId: string | null,
   mode: PracticeMode,
   preference: DifficultyPreference
-): Promise<NextProblemPayload | null> {
+): Promise<NextProblemResult> {
   const topics = await prisma.topic.findMany({
-    where: { subjectId, parentTopicId: { not: null } },
+    where: { ...(subjectId ? { subjectId } : {}), parentTopicId: { not: null } },
     select: { id: true },
   });
-  const leafTopicIds = topicId
-    ? await resolveTopicIds(topicId)
-    : topics.map((t) => t.id);
+
+  // An explicit topic (a drill) always wins; review mode is deliberately
+  // cross-topic. Otherwise an active focus narrows practice to its subtree.
+  const focus = topicId === null && mode !== "review" ? await getFocus(userId) : null;
+  const topicBoost = new Map<string, number>();
+  let leafTopicIds: string[];
+  if (topicId) {
+    leafTopicIds = await resolveTopicIds(topicId);
+  } else if (focus) {
+    leafTopicIds = await focusTopicIds(focus.topic.id);
+    if (focus.target) topicBoost.set(focus.target.id, FOCUS_TARGET_BOOST);
+  } else {
+    leafTopicIds = topics.map((t) => t.id);
+  }
 
   const progress = await prisma.learnerTopicProgress.findMany({ where: { userId } });
   const topicRatings = new Map(progress.map((p) => [p.topicId, p.rating]));
@@ -112,8 +132,9 @@ export async function selectNextProblem(
     weakTags,
     preference,
     reviewTopicIds,
+    topicBoost,
   });
-  if (!chosen) return null;
+  if (!chosen) return { problem: null, focus };
 
   const full = await prisma.problem.findUniqueOrThrow({
     where: { id: chosen.id },
@@ -126,20 +147,23 @@ export async function selectNextProblem(
   });
 
   return {
-    id: full.id,
-    statement: full.statement,
-    imageUrl: full.imageUrl,
-    answerType: full.answerType,
-    difficulty: full.difficulty,
-    estimatedTime: full.estimatedTime,
-    cognitiveLevel: full.cognitiveLevel,
-    topic: { id: full.topic.id, title: full.topic.title, slug: full.topic.slug },
-    choices: full.choices.map((c) => ({ label: c.label, text: c.text })),
-    hints: JSON.parse(full.hints) as string[],
-    tags: full.tags.map((t) => t.tag),
-    bookmarked: full.bookmarks.length > 0,
-    // Lets the UI show a "generating solution" wait state on finalize.
-    hasSolution: full.solution.trim() !== "",
+    problem: {
+      id: full.id,
+      statement: full.statement,
+      imageUrl: full.imageUrl,
+      answerType: full.answerType,
+      difficulty: full.difficulty,
+      estimatedTime: full.estimatedTime,
+      cognitiveLevel: full.cognitiveLevel,
+      topic: { id: full.topic.id, title: full.topic.title, slug: full.topic.slug },
+      choices: full.choices.map((c) => ({ label: c.label, text: c.text })),
+      hints: JSON.parse(full.hints) as string[],
+      tags: full.tags.map((t) => t.tag),
+      bookmarked: full.bookmarks.length > 0,
+      // Lets the UI show a "generating solution" wait state on finalize.
+      hasSolution: full.solution.trim() !== "",
+    },
+    focus,
   };
 }
 

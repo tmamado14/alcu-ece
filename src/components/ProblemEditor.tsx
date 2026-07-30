@@ -137,7 +137,7 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
                 <div
                   key={c.label}
                   className={`rounded-(--radius-control) border p-3 ${
-                    c.label === answerData.correct ? "border-green-400 bg-green-50" : "border-line"
+                    c.label === answerData.correct ? "border-green-700 bg-green-50" : "border-line"
                   }`}
                 >
                   <b>{c.label}.</b> <Latex>{c.text}</Latex>
@@ -285,7 +285,7 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
             <label className="block">
               <span className="label">Cognitive level</span>
               <select value={v.cognitiveLevel} onChange={(e) => set("cognitiveLevel", e.target.value)} className="input py-1.5">
-                {["recall", "comprehension", "application", "analysis", "synthesis"].map((l) => (
+                {["recall", "comprehension", "application", "analysis", "synthesis", "evaluation"].map((l) => (
                   <option key={l} value={l}>{l}</option>
                 ))}
               </select>

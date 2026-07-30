@@ -1,0 +1,791 @@
+/* ============================================================
+   Landing page styles — the "Industry" design system.
+
+   Ported from `Industry design system page/` (design by Claude Design):
+   a wireframe blueprint look — steel accent on a light technical ground,
+   Barlow Condensed headings over Barlow, square corners, hairline borders
+   and "+" registration marks on every framed object.
+
+   The app now shares this system (`globals.css` carries the same tokens),
+   so these `.il` rules are only the landing's own page furniture — the
+   hero, the spec sheet, the wireframe cells. Fonts come from next/font
+   in `layout.tsx` via the `--font-barlow*` variables.
+   ============================================================ */
+
+.il {
+  /* — Industry tokens — */
+  --color-bg: #f2f2f3;
+  --color-surface: #e9e9ea;
+  --color-text: #1d1f20;
+  --color-accent: #5980a6;
+  --color-divider: color-mix(in srgb, #1d1f20 16%, transparent);
+
+  --color-accent-100: #eef6ff;
+  --color-accent-600: #597ea3;
+  --color-accent-700: #416180;
+  --color-accent-800: #2c455d;
+  --color-accent-900: #1d2d3d;
+  --color-neutral-100: #f5f5f8;
+  --color-neutral-800: #424244;
+
+  --font-heading: var(--font-barlow-condensed), ui-sans-serif, system-ui, sans-serif;
+  --font-heading-weight: 600;
+  --font-body: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  --font-mono-il: ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, monospace;
+
+  --space-1: 3.4px;
+  --space-2: 6.8px;
+  --space-3: 10.2px;
+  --radius-md: 4px;
+
+  /* — page rhythm: a 24px leading unit, 12px half-step — */
+  --leading: 24px;
+  --half: 12px;
+  --measure: 60ch;
+
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.il h1,
+.il h2,
+.il h3,
+.il h4 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--space-2);
+}
+.il p {
+  margin: 0 0 var(--space-3);
+}
+.il :focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 0;
+}
+.il ::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* ------------------------------------------------------------
+   The blueprint frame every drawn object wears: square, hairline
+   bordered, with four "+" registration marks hung outside the box.
+   ------------------------------------------------------------ */
+.il .frame,
+.il .plate,
+.il .cell-frame {
+  position: relative;
+  border: 1px solid var(--color-divider);
+  border-radius: 0;
+  /* the drawing grid shows through every framed object here, unlike the
+     app's filled plates in globals.css */
+  background: transparent;
+}
+.il .frame,
+.il .cell-frame {
+  padding: var(--leading);
+}
+.il .corner {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  pointer-events: none;
+}
+.il .corner::before,
+.il .corner::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.il .corner::before {
+  left: 7px;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+.il .corner::after {
+  top: 7px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+}
+.il .corner.tl { top: -8px; left: -8px; }
+.il .corner.tr { top: -8px; right: -8px; }
+.il .corner.bl { bottom: -8px; left: -8px; }
+.il .corner.br { bottom: -8px; right: -8px; }
+
+/* ------------------------------------------------------------
+   Components (from the system's styles.css, at landing scale)
+   ------------------------------------------------------------ */
+.il .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 15px;
+  line-height: 1.2;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  border-radius: 0;
+  padding: var(--space-2) calc(var(--space-3) * 1.6);
+  min-height: 38px;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+}
+.il .btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+.il .btn-primary:hover { background: var(--color-accent-600); }
+.il .btn-primary:active { background: var(--color-accent-700); }
+.il .btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.il .btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+.il .btn-ghost {
+  border-color: transparent;
+  color: var(--color-accent-700);
+}
+.il .btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+
+.il .input {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: 0;
+}
+
+.il .tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 0;
+}
+.il .tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
+.il .tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+.il .tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent-700); }
+
+.il .table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.il .table th {
+  text-align: left;
+  border-bottom: 1px solid var(--color-divider);
+}
+.il .table td {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+/* ------------------------------------------------------------
+   Page scaffolding — layout and web-scale sizing. The label sits
+   ABOVE a drawn 1px rule with the content seated below it: the
+   system's caption-rule grammar, structure made visible.
+   ------------------------------------------------------------ */
+.il .kicker {
+  display: block;
+  font-size: 13px;
+  line-height: var(--half);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  /* accent-colored small text takes the deep step — the base steel is a
+     large-text value only */
+  color: var(--color-accent-700);
+  font-feature-settings: "tnum" 1;
+  margin: 0 0 var(--half);
+}
+.il .caption-rule {
+  height: 1px;
+  border: 0;
+  margin: 0 0 calc(var(--leading) - var(--half));
+  background: var(--color-divider);
+}
+
+.il .sec {
+  padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading));
+}
+.il .sec-head {
+  margin-bottom: calc(var(--leading) + 8px);
+}
+.il .sec-title {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: calc(1.5 * var(--leading));
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.il .sec-sub {
+  font-size: 15px;
+  line-height: var(--leading);
+  max-width: 64ch;
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  margin: var(--half) 0 0;
+}
+.il .h3 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 20px;
+  line-height: var(--leading);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.il .body {
+  font-size: 15px;
+  line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  margin: var(--half) 0 0;
+}
+.il .micro {
+  font-size: 13px;
+  line-height: var(--leading);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+  margin: 0;
+}
+.il .mono {
+  font-family: var(--font-mono-il);
+  font-feature-settings: "tnum" 1;
+}
+.il .math {
+  font-style: italic;
+  font-feature-settings: "tnum" 1;
+  white-space: nowrap;
+}
+.il .math sup {
+  font-style: normal;
+  font-size: 0.7em;
+}
+/* wide objects scroll inside their own box — the page never scrolls sideways */
+.il .scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* — hero — */
+.il .hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+  gap: var(--leading) clamp(24px, 4vw, 72px);
+  align-items: center;
+  padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading));
+}
+.il .display {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: clamp(48px, 7vw, 96px);
+  /* ratio-governed ≈1.04: uppercase condensed carries no descenders to clear */
+  line-height: clamp(50px, 7.3vw, 100px);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  margin: 0;
+  margin-left: -0.052em; /* optical left alignment, measured for Condensed 600 */
+}
+.il .display .line {
+  display: block;
+}
+.il .sub {
+  font-size: 16px;
+  line-height: var(--leading);
+  max-width: var(--measure);
+  margin: var(--leading) 0 0;
+}
+.il .row {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--leading);
+}
+
+/* — the hero problem card — */
+.il .pcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--half);
+}
+.il .pcard-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.il .pcard-q {
+  font-size: 16px;
+  line-height: var(--leading);
+  margin: 0;
+}
+.il .pcard-stem {
+  font-family: var(--font-mono-il);
+  font-size: 15px;
+  line-height: var(--leading);
+  margin: 0;
+  padding: var(--half) 0;
+}
+.il .answer-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.il .answer-row .input {
+  flex: 1;
+  min-width: 12ch;
+  font-family: var(--font-mono-il);
+}
+.il .pcard-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--half) var(--leading);
+  align-items: baseline;
+  border-top: 1px solid var(--color-divider);
+  padding-top: var(--half);
+  margin-top: var(--half);
+}
+.il .rating {
+  font-family: var(--font-mono-il);
+  font-size: 20px;
+  letter-spacing: 0.01em;
+}
+.il .rating .up {
+  color: var(--st-passed);
+}
+.il .xp {
+  position: relative;
+  font-family: var(--font-mono-il);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-accent-700);
+}
+.il .try {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.il .try i {
+  width: 9px;
+  height: 9px;
+  display: block;
+  border: 1px solid var(--color-text);
+}
+.il .try i[data-used] {
+  background: var(--color-text);
+}
+
+/* — the spec sheet: the numbers printed as a drawing-set plate — */
+.il .sheet {
+  padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading));
+}
+.il .title-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  border-bottom: 1px solid var(--color-divider);
+}
+.il .title-block > span {
+  padding: var(--half) var(--leading);
+  font-size: 13px;
+  line-height: var(--leading);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-feature-settings: "tnum" 1;
+}
+.il .tb-title {
+  flex: 1;
+  min-width: 16ch;
+}
+.il .tb-cell {
+  border-left: 1px solid var(--color-divider);
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.il .spec {
+  table-layout: fixed;
+}
+.il .spec col.c-num { width: calc(3 * var(--leading)); }
+.il .spec col.c-prop { width: 30%; }
+.il .spec col.c-val { width: 21%; }
+.il .spec th,
+.il .spec td {
+  padding: var(--half) var(--leading) var(--half) 0;
+  vertical-align: middle;
+}
+.il .spec th:first-child,
+.il .spec td:first-child {
+  padding-left: var(--leading);
+}
+.il .spec th {
+  font-size: 13px;
+  line-height: var(--half);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.il .spec td {
+  font-size: 15px;
+  line-height: var(--leading);
+}
+.il .spec .s-num {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--color-accent-700);
+  font-feature-settings: "tnum" 1;
+}
+.il .spec .s-val {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 22px;
+  line-height: var(--leading);
+  letter-spacing: 0.02em;
+  font-feature-settings: "tnum" 1;
+  white-space: nowrap;
+}
+.il .spec .s-rem {
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
+.il .spec tbody tr:last-child td {
+  border-bottom: 0;
+}
+.il .sheet-note {
+  margin: 0;
+  padding: var(--half) var(--leading);
+  border-top: 1px solid var(--color-divider);
+  font-size: 13px;
+  line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+
+/* — wireframe feature cells — */
+.il .features {
+  padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading));
+}
+.il .features > .caption-rule {
+  margin-bottom: calc(var(--leading) + 8px);
+}
+.il .cells {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 3vw, 48px);
+  margin-top: calc(var(--leading) - var(--half));
+}
+.il .cell-frame h3 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 22px;
+  line-height: var(--leading);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.il .cell-frame p {
+  font-size: 15px;
+  line-height: var(--leading);
+  margin: var(--half) 0 0;
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
+
+/* — the engine split — */
+.il .split {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--leading) clamp(24px, 5vw, 96px);
+  align-items: center;
+  padding: calc(2 * var(--leading)) 0 calc(3 * var(--leading));
+}
+.il .split-title {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 32px;
+  line-height: calc(1.5 * var(--leading));
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.il .split-copy .note {
+  font-size: 15px;
+  line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  margin: var(--half) 0 0;
+  max-width: 48ch;
+}
+.il figure {
+  margin: 0;
+}
+.il figcaption {
+  font-size: 13px;
+}
+
+/* — grids used by the progression and reporting sections — */
+.il .grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: clamp(24px, 3vw, 44px);
+}
+.il .grid-mastery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(24px, 3vw, 44px);
+}
+.il .stat-num {
+  font-family: var(--font-mono-il);
+  font-feature-settings: "tnum" 1;
+  font-size: 44px;
+  line-height: calc(2 * var(--leading));
+  margin: 0;
+}
+.il .stack {
+  display: grid;
+  gap: clamp(24px, 3vw, 44px);
+  align-content: start;
+}
+.il .bars {
+  margin-top: var(--leading);
+  display: grid;
+  gap: var(--half);
+}
+.il .tier {
+  text-align: center;
+}
+.il .tier svg {
+  margin: 0 auto;
+}
+
+/* ------------------------------------------------------------
+   Reserved status language — carried over from the app's design
+   system (globals.css) at contrast levels that hold on this ground.
+   Meaning-bearing only, never decorative.
+   ------------------------------------------------------------ */
+.il {
+  --st-none: #6b7280;      /* not started */
+  --st-learning: #b4590f;  /* learning */
+  --st-passed: #2f7a4d;    /* passed */
+  --st-mastered: #0e7490;  /* mastered */
+  --st-review: #b3261e;    /* needs review */
+}
+.il .status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.il .s-none { color: var(--st-none); }
+.il .s-learning { color: var(--st-learning); }
+.il .s-passed { color: var(--st-passed); }
+.il .s-mastered { color: var(--st-mastered); }
+.il .s-review { color: var(--st-review); }
+.il .s-accent { color: var(--color-accent); }
+
+/* progress track, with the pass and mastery thresholds drawn as ticks */
+.il .track {
+  position: relative;
+  height: 8px;
+  margin-top: var(--half);
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+.il .track .fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: currentColor;
+  transition: width 0.8s ease-out;
+}
+.il .track .tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: color-mix(in srgb, var(--color-text) 50%, transparent);
+}
+
+/* — close — */
+.il .close {
+  padding: calc(2.5 * var(--leading)) 0 calc(2 * var(--leading));
+}
+.il .close h2 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 24px;
+  line-height: var(--leading);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ------------------------------------------------------------
+   Motion — entry fade, bar fills, the XP pop. All of it opt-out
+   under prefers-reduced-motion.
+   ------------------------------------------------------------ */
+.il .fade-up {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+}
+.il .fade-up.in {
+  opacity: 1;
+  transform: none;
+}
+@keyframes il-xp-pop {
+  0% { opacity: 0; transform: translateY(6px); }
+  18% { opacity: 1; transform: translateY(0); }
+  70% { opacity: 1; transform: translateY(-8px); }
+  100% { opacity: 0; transform: translateY(-16px); }
+}
+.il .xp[data-pop] {
+  animation: il-xp-pop 1.6s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .il .fade-up {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .il .track .fill {
+    transition: none;
+  }
+  .il .xp[data-pop] {
+    animation: none;
+  }
+}
+
+/* The drawing-grid motif now lives on `body` in globals.css — the whole
+   app stands on it, not just the landing. */
+
+/* ------------------------------------------------------------
+   Responsive collapse
+   ------------------------------------------------------------ */
+@media (max-width: 880px) {
+  .il .hero-grid,
+  .il .split {
+    grid-template-columns: 1fr;
+  }
+  /* stacked frames: facing registration crosses each overhang 7px, so the
+     gap has to keep a full unit of air between them */
+  .il .cells {
+    grid-template-columns: 1fr;
+    gap: calc(var(--leading) + 16px);
+  }
+}
+
+/* the narrowest screens: the register cells never wrap, so one row of them
+   no longer fits — the title block re-forms as its own grid (doc and revision
+   share a ruled row, the sheet count takes the next) */
+@media (max-width: 560px) {
+  .il .title-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .il .tb-title {
+    grid-column: 1 / -1;
+    border-bottom: 0; /* the rules move to the cells' tops */
+  }
+  .il .title-block > .tb-cell {
+    border-left: 0;
+    border-top: 1px solid var(--color-divider);
+    padding-left: var(--leading);
+  }
+  .il .tb-title + .tb-cell + .tb-cell {
+    border-left: 1px solid var(--color-divider);
+    padding-left: var(--half);
+  }
+  .il .tb-cell:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .il .hero-grid {
+    padding-top: calc(2 * var(--leading));
+  }
+  /* the sheet re-stacks: register cells drop to a second ruled row and each
+     table row becomes its own small plate — No. and property on the register
+     line, the value beneath, the remark last */
+  .il .tb-title {
+    flex-basis: 100%;
+    border-bottom: 1px solid var(--color-divider);
+  }
+  .il .title-block > .tb-cell {
+    padding-inline: var(--half);
+    flex: 1 0 auto;
+  }
+  .il .tb-title + .tb-cell {
+    border-left: 0;
+    padding-left: var(--leading);
+  }
+  /* visually hidden, not display:none — the stacked rows carry their own
+     register, but the column heads stay in the accessibility tree */
+  .il .spec thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .il .spec,
+  .il .spec tbody,
+  .il .spec td {
+    display: block;
+  }
+  .il .spec tr {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: var(--half);
+    row-gap: var(--half);
+    align-items: baseline;
+    padding: var(--leading);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+  }
+  .il .spec tr:last-child {
+    border-bottom: 0;
+  }
+  .il .spec th,
+  .il .spec td {
+    padding: 0;
+    border: 0;
+  }
+  .il .spec th:first-child,
+  .il .spec td:first-child {
+    padding-left: 0;
+  }
+  .il .spec .s-num { grid-column: 1; }
+  .il .spec .s-prop { grid-column: 2; }
+  .il .spec .s-val,
+  .il .spec .s-rem { grid-column: 1 / -1; }
+  .il .split figure {
+    order: -1;
+  }
+}

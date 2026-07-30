@@ -33,8 +33,8 @@ export default function LoginPage() {
     <div className="card fade-up mx-auto mt-16 max-w-sm p-8">
       <h1 className="page-title">Log in</h1>
       <p className="page-sub">
-        Seeded accounts: <code className="rounded bg-sunken px-1 font-mono text-xs">learner/learner123</code>{" "}
-        or <code className="rounded bg-sunken px-1 font-mono text-xs">admin/admin123</code>
+        Seeded accounts: <code className="border border-line bg-sunken px-1 font-mono text-xs">learner/learner123</code>{" "}
+        or <code className="border border-line bg-sunken px-1 font-mono text-xs">admin/admin123</code>
       </p>
       <form onSubmit={submit} className="mt-6 space-y-4">
         <div>

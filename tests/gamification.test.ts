@@ -78,7 +78,7 @@ describe("badge rules", () => {
     expect(codes).toContain("second-try-scholar");
     expect(codes).toContain("no-skip-streak");
   });
-  it("stability-sentinel requires all three stability subtopics mastered", () => {
+  it("stability-sentinel requires every stability subtopic mastered", () => {
     const partial = evaluateBadgeRules(
       ctx({ totalAttempts: 1, masteredTopicSlugs: new Set(["poles-and-stability"]) }),
       new Set()
@@ -87,7 +87,10 @@ describe("badge rules", () => {
     const full = evaluateBadgeRules(
       ctx({
         totalAttempts: 1,
-        masteredTopicSlugs: new Set(["poles-and-stability", "routh-hurwitz-criterion", "relative-stability"]),
+        masteredTopicSlugs: new Set([
+          "stability-concept", "poles-and-stability", "routh-hurwitz-criterion",
+          "conditional-stability", "relative-stability",
+        ]),
       }),
       new Set()
     );

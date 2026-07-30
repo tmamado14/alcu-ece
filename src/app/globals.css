@@ -2,51 +2,66 @@
 
 /* ============================================================
    ECE Mastery design system (Tailwind v4)
-   Light, focused "study desk" theme.
-   - canvas: app background      - surface: cards/inputs
+
+   The "Industry" theme — the same wireframe-blueprint language as
+   the landing page, now carried through the whole app: a steel
+   accent on a light technical ground, Barlow Condensed headings
+   over Barlow, square corners, hairline borders, registration
+   marks on framed objects, and no shadows.
+
+   - canvas: app background      - surface: cards/plates
+   - sunken: inputs, table heads (a step *darker* than surface)
    - ink / ink-muted / ink-faint: text hierarchy (WCAG AA on surface)
-   - line: hairline borders      - brand: indigo action color
+   - line: hairline borders      - brand: steel accent
    Status language (kept app-wide): orange/amber = learning,
    green = passed, sky/blue = mastered, red = needs review,
    slate = not started.
    ============================================================ */
 
 @theme {
-  /* Typography */
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas,
+  /* Typography — Barlow body, Barlow Condensed headings.
+     The `--font-*-src` vars are wired up by next/font in layout.tsx. */
+  --font-sans: var(--font-barlow), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-heading: var(--font-barlow-condensed), var(--font-barlow),
+    ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, Consolas,
     monospace;
 
   /* Semantic palette */
-  --color-canvas: #f4f6fb;
-  --color-surface: #ffffff;
-  --color-sunken: #f8fafc;
+  --color-canvas: #f2f2f3;
+  --color-surface: #f8f8f9;
+  --color-sunken: #e9e9ea;
 
-  --color-ink: #101828; /* headings/body — 16.9:1 on surface */
-  --color-ink-muted: #475467; /* secondary text — 7.4:1 */
-  --color-ink-faint: #667085; /* meta text — 5.0:1 (AA) */
+  --color-ink: #1d1f20; /* headings/body — 15.4:1 on surface */
+  --color-ink-muted: #4b4d4e; /* secondary text — 8.2:1 */
+  --color-ink-faint: #636566; /* meta text — 5.5:1 (AA) */
 
-  --color-line: #e4e7ef;
-  --color-line-strong: #cdd3e0;
+  --color-line: #d5d6d7;
+  --color-line-strong: #b9babb;
 
-  /* Brand (indigo) */
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5; /* 6.3:1 on white */
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
+  /* Brand (steel) */
+  --color-brand-50: #eef6ff;
+  --color-brand-100: #dfeaf4;
+  --color-brand-200: #c3d5e5;
+  --color-brand-300: #9db9d1;
+  --color-brand-500: #5980a6; /* the accent — large text / fills only */
+  --color-brand-600: #597ea3;
+  --color-brand-700: #416180; /* 6.4:1 on surface — the small-text step */
+  --color-brand-800: #2c455d;
 
-  /* Radius scale */
-  --radius-control: 0.5rem;
-  --radius-card: 0.875rem;
+  /* Radius scale — square. Kept as tokens so every `rounded-(--radius-*)`
+     call site stays valid without edits. */
+  --radius-control: 0;
+  --radius-card: 0;
 
-  /* Shadows */
-  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.05), 0 1px 3px rgb(16 24 40 / 0.06);
-  --shadow-pop: 0 12px 32px -8px rgb(16 24 40 / 0.18), 0 4px 12px rgb(16 24 40 / 0.08);
+  /* No shadows in this system; depth is drawn with rules, not blur. */
+  --shadow-card: none;
+  --shadow-pop: none;
+
+  /* Page rhythm — a 24px leading unit, 12px half-step */
+  --leading: 24px;
+  --half: 12px;
 }
 
 :root {
@@ -58,44 +73,82 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  font-size: 15px;
   text-rendering: optimizeLegibility;
+  text-wrap: pretty;
+}
+
+/* The drawing grid, washed in the accent — fixed behind everything. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-brand-500) 9%, transparent), transparent 45%),
+    repeating-linear-gradient(to right, color-mix(in srgb, var(--color-ink) 5%, transparent) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(to bottom, color-mix(in srgb, var(--color-ink) 5%, transparent) 0 1px, transparent 1px 72px),
+    var(--color-canvas);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: 0.02em;
 }
 
 /* Accessible, consistent keyboard focus everywhere */
 :focus-visible {
-  outline: 2px solid var(--color-brand-600);
+  outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 ::selection {
-  background: var(--color-brand-100);
+  background: color-mix(in srgb, var(--color-brand-500) 30%, transparent);
 }
 
 /* ------------------------------------------------------------
    Shared component patterns
    ------------------------------------------------------------ */
 @layer components {
-  /* Page headers */
+  /* Page headers — condensed uppercase, the system's title voice */
   .page-title {
-    @apply text-2xl font-bold tracking-tight text-ink;
+    @apply font-heading text-3xl font-semibold tracking-wide text-ink uppercase;
   }
   .page-sub {
     @apply mt-1 text-sm text-ink-muted;
   }
+  /* Section heads sit above a drawn rule with the content seated below —
+     the system's caption-rule grammar, applied everywhere. */
   .section-title {
-    @apply text-base font-semibold text-ink;
+    @apply font-heading border-b border-line pb-2 text-xl font-semibold tracking-wide text-ink uppercase;
   }
   .eyebrow {
-    @apply text-xs font-semibold tracking-wider text-ink-faint uppercase;
+    @apply text-xs font-semibold tracking-[0.08em] text-brand-700 uppercase;
+    font-feature-settings: "tnum" 1;
+  }
+  /* Label above a drawn rule, content seated below it — the system's
+     caption-rule grammar, structure made visible. */
+  .caption-rule {
+    @apply mt-3 mb-3 h-px border-0 bg-line;
   }
 
-  /* Cards */
+  /* Cards — hairline plates, square, flat */
   .card {
-    @apply rounded-(--radius-card) border border-line bg-surface shadow-(--shadow-card);
+    @apply relative border border-line bg-surface;
   }
   .card-hover {
-    @apply transition duration-150 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-(--shadow-pop);
+    @apply transition-colors duration-150 hover:border-brand-500 hover:bg-brand-50;
+  }
+  /* Plate without the registration marks (nested boxes, dense lists) */
+  .plate {
+    @apply border border-line bg-surface;
   }
 
   /* Buttons — base shared across variants */
@@ -104,28 +157,28 @@ body {
   .btn-danger,
   .btn-danger-outline,
   .btn-ghost {
-    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-(--radius-control) px-4 py-2 text-sm font-semibold transition duration-150 select-none disabled:pointer-events-none disabled:opacity-45;
+    @apply font-heading inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-1.5 border px-4 py-2 text-[15px] leading-tight font-semibold tracking-wide uppercase transition duration-150 select-none disabled:pointer-events-none disabled:opacity-45;
   }
   .btn-primary {
-    @apply bg-brand-600 text-white shadow-xs hover:bg-brand-700 active:bg-brand-800;
+    @apply border-brand-500 bg-brand-500 text-canvas hover:bg-brand-600 active:bg-brand-700;
   }
   .btn-secondary {
-    @apply border border-line-strong bg-surface text-ink-muted shadow-xs hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700;
+    @apply border-line-strong bg-transparent text-ink hover:bg-ink/7 active:bg-ink/14;
   }
   .btn-danger {
-    @apply bg-red-600 text-white shadow-xs hover:bg-red-700;
+    @apply border-red-700 bg-red-700 text-canvas hover:bg-red-800;
   }
   .btn-danger-outline {
-    @apply border border-red-300 bg-surface text-red-700 hover:bg-red-50;
+    @apply border-red-700 bg-transparent text-red-700 hover:bg-red-700/10;
   }
   .btn-ghost {
-    @apply px-2.5 py-1.5 text-ink-muted hover:bg-sunken hover:text-ink;
+    @apply border-transparent px-2.5 py-1.5 text-brand-700 hover:bg-brand-500/10;
   }
   .btn-lg {
-    @apply px-6 py-3 text-base;
+    @apply px-6 py-3 text-lg;
   }
   .btn-sm {
-    @apply px-3 py-1.5 text-xs;
+    @apply min-h-0 px-3 py-1.5 text-xs;
   }
 
   /* Text link */
@@ -135,68 +188,69 @@ body {
 
   /* Form controls */
   .input {
-    @apply w-full rounded-(--radius-control) border border-line-strong bg-surface px-3 py-2 text-sm text-ink transition placeholder:text-ink-faint focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none disabled:opacity-50;
+    @apply w-full border border-line bg-sunken px-2.5 py-2 text-sm text-ink transition placeholder:text-ink-faint focus:border-brand-500 focus:outline-none disabled:opacity-50;
+    caret-color: var(--color-brand-500);
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-ink-muted;
+    @apply mb-1 block text-xs font-semibold tracking-[0.06em] text-ink-muted uppercase;
   }
 
-  /* Badges / chips — base shared across variants */
+  /* Badges / chips — square registers, not pills */
   .chip-brand,
   .chip-neutral,
   .chip-success,
   .chip-danger,
   .chip-warning {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold tracking-[0.02em];
   }
   .chip-brand {
     @apply bg-brand-100 text-brand-800;
   }
   .chip-neutral {
-    @apply bg-slate-100 text-slate-700;
+    @apply bg-sunken text-ink-muted;
   }
   .chip-success {
-    @apply bg-green-100 text-green-800;
+    @apply bg-green-100 text-green-900;
   }
   .chip-danger {
-    @apply bg-red-100 text-red-800;
+    @apply bg-red-100 text-red-900;
   }
   .chip-warning {
-    @apply bg-amber-100 text-amber-800;
+    @apply bg-amber-100 text-amber-900;
   }
 
-  /* Callouts — base shared across variants */
+  /* Callouts — hairline framed, left rule carries the meaning */
   .callout-info,
   .callout-success,
   .callout-danger,
   .callout-warning {
-    @apply rounded-(--radius-control) border px-4 py-3 text-sm;
+    @apply border border-l-4 px-4 py-3 text-sm;
   }
   .callout-info {
-    @apply border-brand-200 bg-brand-50 text-brand-800;
+    @apply border-line border-l-brand-500 bg-brand-50 text-brand-800;
   }
   .callout-success {
-    @apply border-green-200 bg-green-50 text-green-800;
+    @apply border-line border-l-green-700 bg-green-50 text-green-900;
   }
   .callout-danger {
-    @apply border-red-200 bg-red-50 text-red-800;
+    @apply border-line border-l-red-700 bg-red-50 text-red-900;
   }
   .callout-warning {
-    @apply border-amber-200 bg-amber-50 text-amber-900;
+    @apply border-line border-l-amber-600 bg-amber-50 text-amber-900;
   }
 
-  /* Progress bars */
+  /* Progress bars — square tracks. Not clipped: threshold ticks overhang. */
   .progress-track {
-    @apply h-2 w-full overflow-hidden rounded-full bg-slate-200/70;
+    @apply relative h-2 w-full bg-ink/8;
   }
   .progress-fill {
-    @apply h-full rounded-full;
+    @apply h-full;
     animation: bar-fill 0.8s ease-out;
   }
 
   /* Data tables */
   .table-wrap {
-    @apply overflow-x-auto rounded-(--radius-card) border border-line bg-surface shadow-(--shadow-card);
+    @apply overflow-x-auto border border-line bg-surface;
   }
   .table {
     @apply w-full text-sm text-ink;
@@ -205,7 +259,7 @@ body {
     @apply bg-sunken text-left;
   }
   .table th {
-    @apply px-4 py-2.5 text-xs font-semibold tracking-wider text-ink-faint uppercase;
+    @apply px-4 py-2.5 text-xs font-semibold tracking-[0.08em] text-ink-muted uppercase;
   }
   .table td {
     @apply px-4 py-2.5 align-top;
@@ -216,21 +270,72 @@ body {
 
   /* Loading / empty states */
   .loading-text {
-    @apply mt-8 animate-pulse text-sm text-ink-faint;
+    @apply mt-8 animate-pulse text-sm tracking-[0.04em] text-ink-faint uppercase;
   }
   .error-text {
     @apply mt-8 text-sm font-medium text-red-700;
   }
+
+  /* Numbers set as drawn values — tabular, condensed */
+  .stat-value {
+    @apply font-heading text-2xl font-semibold tracking-wide text-ink;
+    font-feature-settings: "tnum" 1;
+  }
+  /* A register tile: the figure over its ruled caption */
+  .stat-num {
+    @apply font-mono text-4xl leading-none text-ink;
+    font-feature-settings: "tnum" 1;
+  }
+  .stat-label {
+    @apply mt-2 text-xs font-semibold tracking-[0.06em] text-ink-faint uppercase;
+  }
+  .tnum {
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+/* ------------------------------------------------------------
+   Registration marks — the four "+" crosses every framed object in
+   this system wears, hung 8px outside the box. Drawn as one
+   pseudo-element so any `.card` gets them without markup changes.
+   ------------------------------------------------------------ */
+.card::after,
+.regmarks::after {
+  --rm: color-mix(in srgb, var(--color-ink) 45%, transparent);
+  content: "";
+  position: absolute;
+  inset: -8px;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--rm), var(--rm)), linear-gradient(var(--rm), var(--rm)),
+    linear-gradient(var(--rm), var(--rm)), linear-gradient(var(--rm), var(--rm)),
+    linear-gradient(var(--rm), var(--rm)), linear-gradient(var(--rm), var(--rm)),
+    linear-gradient(var(--rm), var(--rm)), linear-gradient(var(--rm), var(--rm));
+  background-size: 1px 15px, 15px 1px, 1px 15px, 15px 1px, 1px 15px, 15px 1px,
+    1px 15px, 15px 1px;
+  background-position:
+    7px 0, 0 7px, /* top-left */
+    calc(100% - 7px) 0, 100% 7px, /* top-right */
+    7px 100%, 0 calc(100% - 7px), /* bottom-left */
+    calc(100% - 7px) 100%, 100% calc(100% - 7px); /* bottom-right */
+  background-repeat: no-repeat;
+}
+.regmarks {
+  position: relative;
+}
+/* Opt out where cards sit flush in a tight grid or inside another frame */
+.card.no-marks::after {
+  content: none;
 }
 
 /* ------------------------------------------------------------
    Animations (respect reduced motion)
    ------------------------------------------------------------ */
 @keyframes xp-pop {
-  0% { transform: translateY(0) scale(0.8); opacity: 0; }
-  20% { transform: translateY(-8px) scale(1.15); opacity: 1; }
-  80% { transform: translateY(-24px) scale(1); opacity: 1; }
-  100% { transform: translateY(-40px) scale(0.9); opacity: 0; }
+  0% { transform: translateY(6px); opacity: 0; }
+  18% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(-8px); opacity: 1; }
+  100% { transform: translateY(-16px); opacity: 0; }
 }
 
 .xp-pop {

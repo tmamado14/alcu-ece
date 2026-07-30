@@ -37,14 +37,25 @@ interface Outcome {
   completedQuests: { code: string; title: string; xpReward: number }[];
 }
 
+interface FocusInfo {
+  topic: { id: string; title: string };
+  target: { id: string; title: string } | null;
+  masteredCount: number;
+  total: number;
+  complete: boolean;
+}
+
 type Phase = "loading" | "answering" | "second_try" | "done" | "empty";
 
 function PracticeInner() {
   const params = useSearchParams();
   const topicId = params.get("topicId");
+  // Optional: scopes unfocused adaptive practice to one subject.
+  const subjectSlug = params.get("subject");
   const mode = (params.get("mode") ?? "adaptive") as "adaptive" | "drill" | "review";
   const [preference, setPreference] = useState(params.get("pref") ?? "normal");
 
+  const [focus, setFocus] = useState<FocusInfo | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [answer, setAnswer] = useState("");
@@ -53,6 +64,7 @@ function PracticeInner() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [hintsShown, setHintsShown] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportMsg, setReportMsg] = useState("");
@@ -68,18 +80,21 @@ function PracticeInner() {
     setFeedback(null);
     setHintsShown(0);
     setError(null);
+    setEmptyMessage(null);
     setReportOpen(false);
     setNeedsReview(false);
     try {
       const res = await fetch("/api/practice/next", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topicId, mode, preference }),
+        body: JSON.stringify({ topicId, subjectSlug, mode, preference }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to load problem");
       const data = await res.json();
+      setFocus(data.focus ?? null);
       if (!data.problem) {
         setProblem(null);
+        setEmptyMessage(data.message ?? null);
         setPhase("empty");
         return;
       }
@@ -91,7 +106,7 @@ function PracticeInner() {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setPhase("empty");
     }
-  }, [topicId, mode, preference]);
+  }, [topicId, subjectSlug, mode, preference]);
 
   useEffect(() => {
     loadNext();
@@ -193,11 +208,12 @@ function PracticeInner() {
     return (
       <div className="card fade-up mx-auto mt-16 max-w-md p-8 text-center">
         <p className="text-3xl" aria-hidden>🎉</p>
-        <h2 className="mt-2 text-xl font-bold text-ink">
+        <h2 className="section-title mt-2">
           {error ? "Something went wrong" : "Nothing to practice here"}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-ink-muted">
           {error ??
+            emptyMessage ??
             (mode === "review"
               ? "No missed problems to review — nice work. Try adaptive practice instead."
               : "No problems available for this selection. Try another topic or mode.")}
@@ -206,6 +222,17 @@ function PracticeInner() {
           <a href="/subjects" className="btn-primary">
             Choose a topic
           </a>
+          {focus && (
+            <button
+              onClick={async () => {
+                await fetch("/api/focus", { method: "DELETE" });
+                loadNext();
+              }}
+              className="btn-secondary"
+            >
+              Clear focus
+            </button>
+          )}
           {error && (
             <button onClick={loadNext} className="btn-secondary">
               Retry
@@ -222,11 +249,24 @@ function PracticeInner() {
 
   return (
     <div className="fade-up mx-auto max-w-3xl">
+      {/* active learning goal: what practice is working toward right now */}
+      {focus && (
+        <div className="callout-info mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <span className="font-semibold">🎯 Focus: {focus.topic.title}</span>
+          {focus.target && focus.target.title !== focus.topic.title && (
+            <span className="text-ink-muted">→ {focus.target.title}</span>
+          )}
+          <span className="tnum ml-auto text-xs text-ink-faint">
+            {focus.masteredCount}/{focus.total} mastered
+          </span>
+        </div>
+      )}
+
       {/* first-solve overlay: submit is waiting on the LLM writing the solution */}
       {busy && !problem.hasSolution && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-          <div className="flex items-center gap-4 rounded-(--radius-card) bg-surface px-6 py-5 shadow-(--shadow-pop)">
-            <div className="h-6 w-6 shrink-0 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
+          <div className="plate flex items-center gap-4 border-line-strong px-6 py-5">
+            <div className="h-6 w-6 shrink-0 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
             <div>
               <p className="font-semibold text-ink">Generating worked solution…</p>
               <p className="mt-0.5 text-sm text-ink-muted">
@@ -312,10 +352,10 @@ function PracticeInner() {
                 {problem.choices.map((c) => (
                   <label
                     key={c.label}
-                    className={`flex cursor-pointer items-start gap-3 rounded-(--radius-control) border p-3.5 transition ${
+                    className={`flex cursor-pointer items-start gap-3 border border-l-4 p-3.5 transition ${
                       answer === c.label
-                        ? "border-brand-500 bg-brand-50 ring-1 ring-brand-300"
-                        : "border-line hover:border-line-strong hover:bg-sunken"
+                        ? "border-line border-l-brand-500 bg-brand-50"
+                        : "border-line border-l-line hover:border-line-strong hover:bg-sunken"
                     }`}
                   >
                     <input
@@ -323,7 +363,7 @@ function PracticeInner() {
                       name="choice"
                       checked={answer === c.label}
                       onChange={() => setAnswer(c.label)}
-                      className="mt-1 accent-brand-600"
+                      className="mt-1 accent-brand-500"
                     />
                     <span className="font-semibold text-ink">{c.label}.</span>
                     <span className="text-ink"><Latex>{c.text}</Latex></span>
@@ -337,9 +377,9 @@ function PracticeInner() {
                     key={v}
                     onClick={() => setAnswer(v)}
                     aria-pressed={answer === v}
-                    className={`cursor-pointer rounded-(--radius-control) border px-8 py-2.5 font-semibold transition ${
+                    className={`font-heading min-h-[38px] cursor-pointer border px-8 py-2.5 font-semibold tracking-wide uppercase transition ${
                       answer === v
-                        ? "border-brand-500 bg-brand-50 text-brand-800 ring-1 ring-brand-300"
+                        ? "border-brand-500 bg-brand-50 text-brand-800"
                         : "border-line-strong text-ink-muted hover:bg-sunken"
                     }`}
                   >
@@ -402,10 +442,8 @@ function PracticeInner() {
         {phase === "done" && outcome && (
           <div className="fade-up mt-6">
             <div
-              className={`relative rounded-(--radius-control) border px-4 py-3 font-semibold ${
-                outcome.correct
-                  ? "border-green-200 bg-green-50 text-green-800"
-                  : "border-red-200 bg-red-50 text-red-800"
+              className={`relative font-semibold ${
+                outcome.correct ? "callout-success" : "callout-danger"
               }`}
             >
               {outcome.result === "correct_first" && "✅ Correct on the first try!"}
@@ -413,7 +451,7 @@ function PracticeInner() {
               {outcome.result === "wrong" && "❌ Not quite. Study the solution below."}
               {outcome.result === "gave_up" && "🏳️ Revealed. Read the solution carefully."}
               {outcome.xpAwarded > 0 && (
-                <span className="xp-pop absolute -top-2 right-4 text-lg font-extrabold text-brand-600">
+                <span className="xp-pop tnum absolute -top-2 right-4 font-mono text-lg font-bold text-brand-700">
                   +{outcome.xpAwarded} XP
                 </span>
               )}
@@ -454,7 +492,7 @@ function PracticeInner() {
               </div>
             )}
 
-            <div className="mt-4 rounded-(--radius-control) border border-line bg-sunken p-5">
+            <div className="mt-4 border border-line bg-sunken p-5">
               <p className="eyebrow">Correct answer</p>
               <p className="mt-1 font-mono text-lg text-ink">
                 <Latex>{outcome.correctAnswerDisplay ?? ""}</Latex>

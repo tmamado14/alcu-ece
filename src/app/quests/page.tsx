@@ -57,14 +57,15 @@ export default function QuestsPage() {
       {groups.map(([title, list]) => (
         <section key={title} className="mt-8">
           <h2 className="eyebrow">{title}</h2>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <hr className="caption-rule" />
+          <div className="mt-4 grid gap-6 sm:grid-cols-2">
             {list.map((q) => (
               <div
                 key={q.code}
-                className={`card p-5 ${q.completed ? "border-green-300 bg-green-50/60" : ""}`}
+                className={`card p-5 ${q.completed ? "border-green-700 bg-green-50/60" : ""}`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-semibold text-ink">
+                  <h3 className="font-heading text-lg font-semibold tracking-wide text-ink uppercase">
                     <QuestArt imagePath={q.imagePath} completed={q.completed} />
                     {q.title}
                   </h3>
@@ -73,11 +74,11 @@ export default function QuestsPage() {
                 <p className="mt-1 text-sm leading-relaxed text-ink-muted">{q.description}</p>
                 <div className="progress-track mt-4">
                   <div
-                    className={`progress-fill ${q.completed ? "bg-green-600" : "bg-brand-600"}`}
+                    className={`progress-fill ${q.completed ? "bg-green-700" : "bg-brand-500"}`}
                     style={{ width: `${Math.min(100, (q.progress / q.target) * 100)}%` }}
                   />
                 </div>
-                <p className="mt-1.5 text-right text-xs font-medium text-ink-faint">
+                <p className="tnum mt-1.5 text-right text-xs font-semibold tracking-[0.04em] text-ink-faint uppercase">
                   {q.completed ? "Complete!" : `${q.progress}/${q.target}`}
                 </p>
               </div>

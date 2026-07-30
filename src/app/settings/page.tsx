@@ -49,6 +49,7 @@ export default function SettingsPage() {
       <h1 className="page-title">Profile &amp; settings</h1>
       <div className="card mt-6 p-6">
         <h2 className="eyebrow">Account</h2>
+        <hr className="caption-rule" />
         <dl className="mt-3 divide-y divide-line text-sm">
           {[
             ["Name", me.name],
@@ -59,15 +60,15 @@ export default function SettingsPage() {
             ["Member since", new Date(me.createdAt).toLocaleDateString()],
           ].map(([k, v]) => (
             <div key={k} className="flex justify-between py-2.5">
-              <dt className="font-medium text-ink-faint">{k}</dt>
+              <dt className="text-xs font-semibold tracking-[0.06em] text-ink-faint uppercase">{k}</dt>
               <dd className="text-ink">{v}</dd>
             </div>
           ))}
         </dl>
       </div>
 
-      <div className="card mt-6 border-red-200 p-6">
-        <h2 className="font-semibold text-red-800">Danger zone</h2>
+      <div className="card mt-8 border-red-700 p-6">
+        <h2 className="font-heading text-xl font-semibold tracking-wide text-red-800 uppercase">Danger zone</h2>
         <p className="mt-1 text-sm leading-relaxed text-ink-muted">
           Reset all learning progress for this account (useful for testing the adaptive engine).
         </p>

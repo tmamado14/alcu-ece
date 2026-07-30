@@ -24,6 +24,12 @@ model User {
   totalXp      Int      @default(0)
   createdAt    DateTime @default(now())
 
+  // Learning goal: the topic group or single subtopic the learner has chosen to
+  // master next. Adaptive practice draws only from it while it is set.
+  focusTopicId String?
+  focusSetAt   DateTime?
+  focusTopic   Topic?    @relation("UserFocus", fields: [focusTopicId], references: [id])
+
   attempts       Attempt[]
   topicProgress  LearnerTopicProgress[]
   xpEvents       XPEvent[]
@@ -68,6 +74,7 @@ model Topic {
   problems       Problem[]
   progress       LearnerTopicProgress[]
   assignments    Assignment[]
+  focusedBy      User[]              @relation("UserFocus")
 }
 
 model TopicPrerequisite {

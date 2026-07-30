@@ -30,16 +30,17 @@ const RESULT_FACE: Record<string, { icon: string; label: string }> = {
 };
 
 const BAR_COLOR: Record<string, string> = {
-  not_started: "bg-slate-300",
-  learning: "bg-orange-500",
-  passed: "bg-green-600",
-  mastered: "bg-sky-500",
-  needs_review: "bg-red-500",
+  not_started: "bg-gray-500",
+  learning: "bg-orange-700",
+  passed: "bg-green-700",
+  mastered: "bg-cyan-700",
+  needs_review: "bg-red-700",
 };
 
 export default function ReportPage() {
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
-  const [slug, setSlug] = useState("feedback-control-systems");
+  // Empty until /api/subjects answers; the first subject becomes the default.
+  const [slug, setSlug] = useState("");
   const [data, setData] = useState<ReportData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -47,12 +48,16 @@ export default function ReportPage() {
 
   useEffect(() => {
     fetch("/api/subjects").then(async (r) => {
-      if (r.ok) setSubjects(await r.json());
-      else if (r.status === 401) window.location.href = "/login";
+      if (r.ok) {
+        const list: SubjectOption[] = await r.json();
+        setSubjects(list);
+        setSlug((cur) => cur || list[0]?.slug || "");
+      } else if (r.status === 401) window.location.href = "/login";
     });
   }, []);
 
   const load = useCallback(async () => {
+    if (!slug) return;
     setData(null);
     const res = await fetch(`/api/report?subject=${encodeURIComponent(slug)}`);
     if (!res.ok) {
@@ -87,7 +92,7 @@ export default function ReportPage() {
   return (
     <div className="fade-up">
       {/* header */}
-      <div className="card border-t-4 border-t-brand-600 px-6 py-5">
+      <div className="card border-t-4 border-t-brand-500 px-6 py-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="page-title">Report for {data.user.username}</h1>
@@ -97,8 +102,9 @@ export default function ReportPage() {
               ))}
             </select>
           </div>
-          <p className="text-lg font-semibold text-ink-muted">
-            Rating: <span className="text-3xl font-bold tracking-tight text-ink">{stats.rating.toFixed(1)}</span>
+          <p className="text-right">
+            <span className="eyebrow">Rating</span>
+            <span className="stat-num block">{stats.rating.toFixed(1)}</span>
           </p>
         </div>
         <div className="mt-4 flex flex-wrap gap-2 text-sm">
@@ -110,12 +116,12 @@ export default function ReportPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* left: topic progress */}
         <div className="card p-6">
           <h2 className="section-title">Progress in {data.subject.title}</h2>
           <div className="mt-4">
-            <div className="grid grid-cols-[1fr_1.2fr] border-b border-line pb-2 text-xs font-semibold tracking-wider text-ink-faint uppercase">
+            <div className="grid grid-cols-[1fr_1.2fr] border-b border-line pb-2 text-xs font-semibold tracking-[0.08em] text-ink-muted uppercase">
               <span>Topics</span>
               <span>Progress</span>
             </div>
@@ -133,16 +139,16 @@ export default function ReportPage() {
                     >
                       {t.title}
                     </a>
-                    <div className="relative h-6 w-full overflow-hidden rounded bg-slate-100">
+                    <div className="relative h-6 w-full overflow-hidden bg-ink/8">
                       {/* pass / mastery guide lines (dashed) */}
-                      <div className="absolute inset-y-0 border-l border-dashed border-orange-400" style={{ left: "40%" }} />
-                      <div className="absolute inset-y-0 border-l border-dashed border-green-500" style={{ left: "66%" }} />
-                      <div className="absolute inset-y-0 border-l border-dashed border-sky-500" style={{ left: "80%" }} />
+                      <div className="absolute inset-y-0 border-l border-dashed border-orange-700" style={{ left: "40%" }} />
+                      <div className="absolute inset-y-0 border-l border-dashed border-green-700" style={{ left: "66%" }} />
+                      <div className="absolute inset-y-0 border-l border-dashed border-cyan-700" style={{ left: "80%" }} />
                       <div
-                        className={`bar-fill flex h-full items-center justify-end rounded pr-1.5 ${BAR_COLOR[t.status] ?? BAR_COLOR.not_started}`}
+                        className={`bar-fill flex h-full items-center justify-end pr-1.5 ${BAR_COLOR[t.status] ?? BAR_COLOR.not_started}`}
                         style={{ width: `${Math.max(t.score, 7)}%` }}
                       >
-                        <span className="text-xs font-bold text-white">{t.score}</span>
+                        <span className="tnum font-mono text-xs font-semibold text-canvas">{t.score}</span>
                       </div>
                     </div>
                   </div>
@@ -165,7 +171,7 @@ export default function ReportPage() {
               {data.problems.map((p) => {
                 const face = RESULT_FACE[p.result] ?? RESULT_FACE.wrong;
                 return (
-                  <div key={p.attemptId} className="overflow-hidden rounded-(--radius-control) border border-line bg-sunken/60">
+                  <div key={p.attemptId} className="border border-line bg-sunken/60">
                     <button
                       onClick={() => toggleProblem(p.attemptId, p.problemId)}
                       aria-expanded={open === p.attemptId}
@@ -174,7 +180,7 @@ export default function ReportPage() {
                       <p className="flex items-center gap-2 text-xs text-ink-faint">
                         <span title={face.label} className="text-base" aria-label={face.label}>{face.icon}</span>
                         <span>{new Date(p.at).toLocaleString()}</span>
-                        <span className="ml-auto">diff {p.difficulty}/10</span>
+                        <span className="tnum ml-auto">diff {p.difficulty}/10</span>
                       </p>
                       <div className="mt-1 text-[15px] leading-relaxed text-ink">
                         <Latex>{p.statement}</Latex>
@@ -189,7 +195,7 @@ export default function ReportPage() {
                             <p className="font-semibold text-ink">
                               Answer: <span className="font-mono"><Latex>{detail.correctAnswerDisplay}</Latex></span>
                             </p>
-                            <div className="mt-2 rounded-(--radius-control) border border-line bg-surface p-3 leading-relaxed">
+                            <div className="mt-2 border border-line bg-surface p-3 leading-relaxed">
                               <Latex>{detail.solution}</Latex>
                             </div>
                           </>

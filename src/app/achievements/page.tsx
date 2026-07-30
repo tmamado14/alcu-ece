@@ -9,10 +9,10 @@ interface BadgeRow {
 interface AchRow extends BadgeRow { hidden: boolean; tier: string; imagePath: string }
 
 const TIER_CHIP: Record<string, string> = {
-  bronze: "bg-orange-100 text-orange-800",
-  silver: "bg-slate-200 text-slate-700",
-  gold: "bg-amber-100 text-amber-800",
-  platinum: "bg-sky-100 text-sky-800",
+  bronze: "border-orange-700 text-orange-800",
+  silver: "border-ink-faint text-ink-muted",
+  gold: "border-amber-600 text-amber-800",
+  platinum: "border-sky-700 text-sky-800",
 };
 
 /** Badge art from imagePath, falling back to the emoji icon while images don't exist yet. */
@@ -56,14 +56,14 @@ export default function AchievementsPage() {
     <div className="fade-up">
       <h1 className="page-title">Badges</h1>
       <p className="page-sub">Milestones you earn as your practice adds up.</p>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {badges.map((b) => (
           <div
             key={b.code}
             className={`card p-5 ${b.earned ? "border-amber-300 bg-amber-50/70" : "opacity-60"}`}
           >
             <div className="text-3xl" aria-hidden>{b.earned ? b.icon : "🔒"}</div>
-            <h3 className="mt-2 font-semibold text-ink">{b.title}</h3>
+            <h3 className="font-heading mt-3 text-lg font-semibold tracking-wide text-ink uppercase">{b.title}</h3>
             <p className="mt-0.5 text-sm leading-relaxed text-ink-muted">{b.description}</p>
             {b.earnedAt && (
               <p className="mt-2 text-xs font-medium text-amber-800">
@@ -76,7 +76,7 @@ export default function AchievementsPage() {
 
       <h1 className="page-title mt-12">Achievements</h1>
       <p className="page-sub">One-off feats — some stay hidden until you pull them off.</p>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {achievements.map((a) => (
           <div
             key={a.code}
@@ -84,11 +84,13 @@ export default function AchievementsPage() {
           >
             <div className="flex items-start justify-between gap-2">
               <BadgeArt imagePath={a.imagePath} icon={a.icon} locked={!a.earned} />
-              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${TIER_CHIP[a.tier] ?? TIER_CHIP.bronze}`}>
+              <span
+                className={`border px-2 py-0.5 text-xs font-semibold tracking-[0.06em] uppercase ${TIER_CHIP[a.tier] ?? TIER_CHIP.bronze}`}
+              >
                 {a.tier}
               </span>
             </div>
-            <h3 className="mt-2 font-semibold text-ink">{a.title}</h3>
+            <h3 className="font-heading mt-3 text-lg font-semibold tracking-wide text-ink uppercase">{a.title}</h3>
             <p className="mt-0.5 text-sm leading-relaxed text-ink-muted">{a.description}</p>
             {a.earnedAt && (
               <p className="mt-2 text-xs font-medium text-brand-700">
@@ -98,7 +100,7 @@ export default function AchievementsPage() {
           </div>
         ))}
         {hiddenLeft > 0 && (
-          <div className="flex items-center justify-center rounded-(--radius-card) border border-dashed border-line-strong p-5 text-sm text-ink-faint">
+          <div className="flex items-center justify-center border border-dashed border-line-strong p-5 text-sm tracking-[0.04em] text-ink-faint uppercase">
             + {hiddenLeft} hidden achievement{hiddenLeft > 1 ? "s" : ""} to discover…
           </div>
         )}

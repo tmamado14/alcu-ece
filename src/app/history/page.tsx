@@ -82,7 +82,7 @@ export default function HistoryPage() {
 
       <div className="mt-5 flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-ink-faint">Result</span>
+          <span className="label mb-0">Result</span>
           <select
             value={result}
             onChange={(e) => { setResult(e.target.value); setPage(1); }}
@@ -96,7 +96,7 @@ export default function HistoryPage() {
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-ink-faint">From</span>
+          <span className="label mb-0">From</span>
           <input
             type="date"
             value={from}
@@ -105,7 +105,7 @@ export default function HistoryPage() {
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-ink-faint">To</span>
+          <span className="label mb-0">To</span>
           <input
             type="date"
             value={to}
@@ -113,7 +113,7 @@ export default function HistoryPage() {
             className="input w-auto py-1.5"
           />
         </label>
-        <span className="ml-auto pb-1 text-ink-faint">{total} attempts</span>
+        <span className="tnum ml-auto pb-1 tracking-[0.04em] text-ink-faint uppercase">{total} attempts</span>
       </div>
 
       {!items ? (
@@ -125,7 +125,7 @@ export default function HistoryPage() {
       ) : (
         <div className="mt-5 space-y-2">
           {items.map((a) => (
-            <div key={a.id} className="card overflow-hidden">
+            <div key={a.id} className="plate">
               <button
                 onClick={() => openProblem(a)}
                 aria-expanded={open === a.id}
@@ -152,7 +152,7 @@ export default function HistoryPage() {
                         {a.answers.map((ans) => (
                           <p key={ans.tryNumber} className={ans.isCorrect ? "text-green-700" : "text-red-700"}>
                             Try {ans.tryNumber}:{" "}
-                            <code className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs">{ans.submitted}</code>{" "}
+                            <code className="border border-line bg-surface px-1.5 py-0.5 font-mono text-xs">{ans.submitted}</code>{" "}
                             {ans.isCorrect ? "✓" : "✗"}{" "}
                             <span className="text-xs text-ink-faint">{new Date(ans.at).toLocaleTimeString()}</span>
                           </p>
@@ -162,7 +162,7 @@ export default function HistoryPage() {
                         Correct answer:{" "}
                         <span className="font-mono"><Latex>{detail.correctAnswerDisplay}</Latex></span>
                       </p>
-                      <div className="mt-2 rounded-(--radius-control) border border-line bg-surface p-3 leading-relaxed">
+                      <div className="mt-2 border border-line bg-surface p-3 leading-relaxed">
                         <Latex>{detail.solution}</Latex>
                       </div>
                     </>

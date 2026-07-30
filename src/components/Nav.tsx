@@ -32,13 +32,16 @@ export default function Nav({
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 sm:px-6">
         <Link
           href="/"
-          className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-ink"
+          className="font-heading flex items-center gap-1.5 text-xl font-semibold tracking-[0.06em] text-ink uppercase"
         >
-          <span aria-hidden className="text-brand-600">⚡</span>
-          ECE <span className="text-brand-600">Mastery</span>
+          <span aria-hidden className="text-brand-500">⚡</span>
+          ECE <span className="text-brand-700">Mastery</span>
         </Link>
         {user && (
-          <nav aria-label="Primary" className="flex flex-wrap gap-1 text-sm">
+          <nav
+            aria-label="Primary"
+            className="font-heading flex flex-wrap gap-1 text-[15px] tracking-[0.04em] uppercase"
+          >
             {LINKS.map((l) => {
               const active = pathname?.startsWith(l.href);
               return (
@@ -46,10 +49,10 @@ export default function Nav({
                   key={l.href}
                   href={l.href}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-full px-3 py-1.5 font-medium transition ${
+                  className={`px-3 py-1.5 font-semibold transition ${
                     active
-                      ? "bg-brand-600 text-white shadow-xs"
-                      : "text-ink-muted hover:bg-brand-50 hover:text-brand-700"
+                      ? "bg-brand-500 text-canvas"
+                      : "text-ink-muted hover:bg-brand-500/10 hover:text-brand-700"
                   }`}
                 >
                   {l.label}
@@ -60,10 +63,10 @@ export default function Nav({
               <Link
                 href="/admin"
                 aria-current={pathname?.startsWith("/admin") ? "page" : undefined}
-                className={`rounded-full px-3 py-1.5 font-medium transition ${
+                className={`px-3 py-1.5 font-semibold transition ${
                   pathname?.startsWith("/admin")
-                    ? "bg-amber-500 text-white shadow-xs"
-                    : "text-amber-700 hover:bg-amber-50"
+                    ? "bg-amber-600 text-canvas"
+                    : "text-amber-800 hover:bg-amber-600/10"
                 }`}
               >
                 Admin
@@ -74,7 +77,7 @@ export default function Nav({
         <div className="ml-auto flex items-center gap-3 text-sm">
           {user ? (
             <>
-              <span className="chip-brand" title="Total experience points">
+              <span className="chip-brand tnum" title="Total experience points">
                 {user.totalXp} XP
               </span>
               <Link

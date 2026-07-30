@@ -45,10 +45,14 @@ export const POST = handle(async (req: Request) => {
         const answerType = col("answer_type", row) || "multiple_choice_single";
         const correct = col("correct_answer", row);
         const subtopic = col("subtopic", row) || col("topic", row);
-        const topicSlug = slugify(subtopic);
-        const topic = await prisma.topic.findUnique({ where: { slug: topicSlug } });
+        // Accept either the topic's slug-ified name or its exact title, since
+        // curriculum titles are long enough that their slugs are not what an
+        // author would naturally type.
+        const topic = await prisma.topic.findFirst({
+          where: { OR: [{ slug: slugify(subtopic) }, { title: subtopic }] },
+        });
         if (!topic) {
-          errors.push(`Row ${r + 1}: unknown topic/subtopic "${subtopic}" (slug ${topicSlug})`);
+          errors.push(`Row ${r + 1}: unknown topic/subtopic "${subtopic}"`);
           continue;
         }
 

@@ -6,10 +6,13 @@ import {
   difficultyToRating,
   expectedScore,
   flagNeedsReview,
+  FOCUS_TARGET_BOOST,
+  pickFocusTarget,
   scoreCandidate,
   selectProblem,
   updateRating,
   type CandidateProblem,
+  type FocusSubtopic,
   type SelectionContext,
   type TopicProgressState,
 } from "@/lib/adaptive";
@@ -156,5 +159,93 @@ describe("problem selection", () => {
     const missed = mk({ id: "missed", seen: true, lastResult: "wrong" });
     expect(scoreCandidate(weak, ctx)).toBeGreaterThan(scoreCandidate(plain, ctx));
     expect(scoreCandidate(missed, ctx)).toBeGreaterThan(scoreCandidate(plain, ctx));
+  });
+
+  it("the focus boost outweighs the unseen bonus, so the target topic wins", () => {
+    const focusCtx: SelectionContext = {
+      ...ctx,
+      topicRatings: new Map([["t1", 1000], ["target", 1000]]),
+      topicBoost: new Map([["target", FOCUS_TARGET_BOOST]]),
+    };
+    const unseenElsewhere = mk({ id: "elsewhere", topicId: "t1", seen: false });
+    const seenInTarget = mk({ id: "in-target", topicId: "target", seen: true });
+    expect(scoreCandidate(seenInTarget, focusCtx)).toBeGreaterThan(
+      scoreCandidate(unseenElsewhere, focusCtx)
+    );
+    expect(selectProblem([unseenElsewhere, seenInTarget], focusCtx)!.id).toBe("in-target");
+  });
+});
+
+describe("pickFocusTarget", () => {
+  const sub = (over: Partial<FocusSubtopic>): FocusSubtopic => ({
+    id: "s",
+    sortOrder: 0,
+    status: "not_started",
+    prerequisiteIds: [],
+    problemCount: 5,
+    ...over,
+  });
+
+  it("walks subtopics in curriculum order, not array order", () => {
+    const subs = [
+      sub({ id: "third", sortOrder: 3 }),
+      sub({ id: "first", sortOrder: 1 }),
+      sub({ id: "second", sortOrder: 2 }),
+    ];
+    expect(pickFocusTarget(subs)!.id).toBe("first");
+  });
+
+  it("moves on once a subtopic is mastered, but not when it is only passed", () => {
+    const subs = [
+      sub({ id: "a", sortOrder: 1, status: "mastered" }),
+      sub({ id: "b", sortOrder: 2, status: "passed" }),
+    ];
+    expect(pickFocusTarget(subs)!.id).toBe("b");
+  });
+
+  it("returns to a subtopic that slipped to needs_review", () => {
+    const subs = [
+      sub({ id: "a", sortOrder: 1, status: "needs_review" }),
+      sub({ id: "b", sortOrder: 2, status: "learning" }),
+    ];
+    expect(pickFocusTarget(subs)!.id).toBe("a");
+  });
+
+  it("skips a subtopic whose in-group prerequisite is not passed yet", () => {
+    const subs = [
+      sub({ id: "advanced", sortOrder: 1, prerequisiteIds: ["basics"] }),
+      sub({ id: "basics", sortOrder: 2 }),
+    ];
+    expect(pickFocusTarget(subs)!.id).toBe("basics");
+  });
+
+  it("ignores prerequisites that live outside the focus group", () => {
+    const subs = [sub({ id: "only", sortOrder: 1, prerequisiteIds: ["some-other-topic"] })];
+    expect(pickFocusTarget(subs)!.id).toBe("only");
+  });
+
+  it("falls back to the earliest unmastered subtopic when the group is circular", () => {
+    const subs = [
+      sub({ id: "a", sortOrder: 1, prerequisiteIds: ["b"] }),
+      sub({ id: "b", sortOrder: 2, prerequisiteIds: ["a"] }),
+    ];
+    expect(pickFocusTarget(subs)!.id).toBe("a");
+  });
+
+  it("ignores subtopics with no questions", () => {
+    const subs = [
+      sub({ id: "empty", sortOrder: 1, problemCount: 0 }),
+      sub({ id: "stocked", sortOrder: 2 }),
+    ];
+    expect(pickFocusTarget(subs)!.id).toBe("stocked");
+  });
+
+  it("returns null once every stocked subtopic is mastered", () => {
+    const subs = [
+      sub({ id: "a", sortOrder: 1, status: "mastered" }),
+      sub({ id: "b", sortOrder: 2, status: "mastered" }),
+      sub({ id: "empty", sortOrder: 3, status: "not_started", problemCount: 0 }),
+    ];
+    expect(pickFocusTarget(subs)).toBeNull();
   });
 });

@@ -312,10 +312,7 @@ export async function evaluateAchievements(userId: string) {
 }
 
 function isTimeResponseSlug(slug: string): boolean {
-  return [
-    "first-order-systems", "second-order-systems", "damping-ratio", "natural-frequency",
-    "percent-overshoot", "settling-time", "rise-time", "steady-state-error",
-  ].includes(slug);
+  return ["first-order-systems", "second-order-systems", "underdamped-parameters"].includes(slug);
 }
 
 // ---------- Quests ----------
@@ -332,7 +329,11 @@ export interface QuestEventInfo {
 /** Topic groups used by quest rules: maps parent slugs to member subtopic slugs. */
 const TOPIC_GROUPS: Record<string, (slug: string) => boolean> = {
   "time-response": (s) => isTimeResponseSlug(s),
-  stability: (s) => ["poles-and-stability", "routh-hurwitz-criterion", "relative-stability"].includes(s),
+  stability: (s) =>
+    [
+      "stability-concept", "poles-and-stability", "routh-hurwitz-criterion",
+      "conditional-stability", "relative-stability",
+    ].includes(s),
 };
 
 export async function updateQuestProgress(userId: string, ev: QuestEventInfo) {

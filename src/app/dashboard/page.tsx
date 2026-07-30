@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import FocusPanel, { type Focus } from "@/components/FocusPanel";
 import { STATUS_COLORS } from "@/components/TopicBar";
 
 interface Report {
@@ -30,6 +31,8 @@ const RESULT_LABEL: Record<string, string> = {
 
 export default function DashboardPage() {
   const [report, setReport] = useState<Report | null>(null);
+  const [focus, setFocus] = useState<Focus | null>(null);
+  const [focusBusy, setFocusBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,6 +46,20 @@ export default function DashboardPage() {
       })
       .catch((e) => setError(e.message));
   }, []);
+
+  useEffect(() => {
+    fetch("/api/focus")
+      .then((r) => (r.ok ? r.json() : { focus: null }))
+      .then((d) => setFocus(d.focus))
+      .catch(() => setFocus(null));
+  }, []);
+
+  async function clearFocus() {
+    setFocusBusy(true);
+    const res = await fetch("/api/focus", { method: "DELETE" });
+    if (res.ok) setFocus(null);
+    setFocusBusy(false);
+  }
 
   if (error) return <p className="error-text">{error}</p>;
   if (!report) return <p className="loading-text">Loading dashboard…</p>;
@@ -59,31 +76,31 @@ export default function DashboardPage() {
       <p className="page-sub">Here&rsquo;s where your practice stands today.</p>
 
       {/* level + stats */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-4">
+      <div className="mt-8 grid gap-6 sm:grid-cols-4">
         <div className="card p-5 sm:col-span-2">
           <div className="flex items-baseline justify-between">
             <span className="eyebrow">Level {user.level.level}</span>
-            <span className="text-xs text-ink-faint">
+            <span className="tnum text-xs text-ink-faint">
               {user.level.currentXp}/{user.level.nextLevelXp} XP to next level
             </span>
           </div>
           <div className="progress-track mt-3 h-3">
-            <div className="progress-fill bg-brand-600" style={{ width: `${levelPct}%` }} />
+            <div className="progress-fill bg-brand-500" style={{ width: `${levelPct}%` }} />
           </div>
-          <p className="mt-2 text-sm text-ink-muted">{user.totalXp} total XP</p>
+          <p className="tnum mt-2 text-sm text-ink-muted">{user.totalXp} total XP</p>
         </div>
         {[
           [`${accuracy}%`, "Accuracy"],
           [`${totals.dayStreak}🔥`, "Day streak"],
         ].map(([v, l]) => (
           <div key={l} className="card p-5 text-center">
-            <p className="text-3xl font-bold tracking-tight text-ink">{v}</p>
-            <p className="mt-1 text-sm text-ink-faint">{l}</p>
+            <p className="stat-num">{v}</p>
+            <p className="stat-label">{l}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-4">
+      <div className="mt-6 grid gap-6 sm:grid-cols-4">
         {[
           [totals.attempts, "Problems attempted"],
           [totals.correctFirst, "First-try correct"],
@@ -91,11 +108,25 @@ export default function DashboardPage() {
           [Math.round(totals.timeSpentSec / 60), "Minutes practiced"],
         ].map(([v, l]) => (
           <div key={l as string} className="card p-5 text-center">
-            <p className="text-3xl font-bold tracking-tight text-ink">{v}</p>
-            <p className="mt-1 text-sm text-ink-faint">{l}</p>
+            <p className="stat-num">{v}</p>
+            <p className="stat-label">{l}</p>
           </div>
         ))}
       </div>
+
+      {focus ? (
+        <div className="mt-6">
+          <FocusPanel focus={focus} onClear={clearFocus} busy={focusBusy} />
+        </div>
+      ) : (
+        <p className="callout-info mt-6 text-sm">
+          🎯 No focus set.{" "}
+          <Link href="/subjects" className="font-semibold underline underline-offset-2">
+            Pick a topic to master next →
+          </Link>{" "}
+          and adaptive practice will work through it in order.
+        </p>
+      )}
 
       {report.needsReviewCount > 0 && (
         <div className="callout-danger mt-4">
@@ -106,7 +137,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* recommended */}
         <div className="card p-5">
           <h2 className="section-title">Recommended next topics</h2>
@@ -172,7 +203,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="progress-track mt-1.5 h-1.5">
                       <div
-                        className="progress-fill bg-green-600"
+                        className="progress-fill bg-green-700"
                         style={{ width: `${(t.correct / t.total) * 100}%` }}
                       />
                     </div>

@@ -1,12 +1,12 @@
 # ⚡ ECE Mastery
 
-An adaptive, gamified problem-practice platform for Electronics Engineering subjects, starting with
-**Feedback and Control Systems**. Answer one problem at a time, get two tries, read full
-step-by-step solutions, and watch topic mastery bars move from *learning* → *passed* → *mastered*
-while earning XP, badges, and quests.
+An adaptive, gamified problem-practice platform for Electronics Engineering subjects. It ships with
+**Feedback and Control Systems** and **Digital Electronics**. Answer one problem at a time, get two
+tries, read full step-by-step solutions, and watch topic mastery bars move from *learning* →
+*passed* → *mastered* while earning XP, badges, and quests.
 
 Local-first and personal-use today; architected so online accounts, teacher dashboards, and more
-ECE subjects (Signals and Systems, Communications, Electronics, …) can be added later.
+ECE subjects (Signals and Systems, Communications, Electromagnetics, …) can be added later.
 
 ---
 
@@ -31,7 +31,19 @@ npm run setup
 ```
 
 `npm run setup` does four things: `npm install` → `prisma generate` → `prisma db push`
-(creates `prisma/dev.db`) → runs the seed script (curriculum + 60+ problems + accounts).
+(creates `prisma/dev.db`) → runs the seed script (2 subjects, 22 topic groups, 117 subtopics, 585
+problems, and the demo accounts).
+
+Each subject's curriculum is defined in `prisma/seed.ts` and its question bank in a CSV beside it:
+
+| Subject | Questions |
+| --- | --- |
+| Feedback and Control Systems | `prisma/seed-questions.csv` |
+| Digital Electronics | `prisma/seed-questions-digital-electronics.csv` |
+
+Rerunning the seed on an existing database is safe: subjects already in the database are left alone
+(along with all attempts, XP, and earned badges), and any subject newly added to `seed.ts` is
+created. Use `SEED_RESET=1 npx prisma db seed` for a full wipe and reseed.
 
 ### Start the app
 
@@ -55,6 +67,28 @@ Then open **http://localhost:3000** and log in with one of the seeded accounts:
 | `npm start`       | Serve the production build                                |
 | `npm test`        | Run the unit tests (grading, adaptive engine, gamification) |
 | `npm run db:seed` | **Wipe and re-seed** the database back to a fresh state   |
+
+### Choosing what to master first (Focus)
+
+By default, adaptive practice roams the whole subject. To work through one part of the
+curriculum instead, set a **focus**:
+
+1. Open **Subjects** and pick a subject.
+2. Press **Focus whole group** on a topic group (all of its subtopics), or **Focus** on a single
+   subtopic.
+
+While a focus is set:
+
+- **Adaptive practice draws only from it.** Within a group, practice sticks to one target subtopic
+  at a time, taken in curriculum order, and moves on once that subtopic is *mastered* (not merely
+  passed). A subtopic that slips back to *needs review* becomes the target again.
+- Prerequisites **inside** the focused group are respected; prerequisites outside it are ignored,
+  since the goal was chosen deliberately.
+- The dashboard and topic map show goal progress (subtopics mastered) and the current target.
+- **Drill links and Review mode ignore the focus**, so you can always step outside it.
+
+Press **Clear** on the focus panel to go back to whole-subject practice. A focus is a preference,
+not progress: resetting your progress leaves it in place.
 
 ### Resetting your learning progress
 
@@ -83,7 +117,8 @@ questions: one at a time in the editor, bulk CSV import, or bulk JSON import.
 ### 2.1 Adding a single question (Admin → New problem)
 
 1. **Topic** — pick the subtopic the question belongs to (e.g.
-   *Feedback and Control Systems / Time Response Analysis / Damping Ratio*).
+   *Feedback and Control Systems / Time Response Analysis / Transient Analysis of Second Order
+   Systems*).
 2. **Answer type** — one of:
 
    | Type                   | Learner sees            | You provide                                   |
@@ -128,8 +163,9 @@ subject, topic, subtopic, skill_tags, difficulty, cognitive_level, answer_type, 
 
 Rules:
 
-- **subtopic** is matched by *slug*: lowercase with hyphens (`Damping Ratio` → `damping-ratio`).
-  See Admin → Topics for the full slug list. The subtopic must already exist.
+- **subtopic** is matched by its exact title (`Routh-Hurwitz Criterion`) or by its slug
+  (`routh-hurwitz-criterion`). See Admin → Topics for the full list. The subtopic must
+  already exist.
 - **answer_type**: `multiple_choice_single`, `numerical_tolerance`, `text_short`,
   `algebraic_expression`, or `true_false`.
 - **correct_answer** depends on the type:
@@ -140,19 +176,20 @@ Rules:
 - **numerical_tolerance** — absolute tolerance for numerical answers; leave blank for the
   default ±1% relative tolerance.
 - **skill_tags** — separated by `;` (e.g. `damping-ratio;second-order`).
-- **cognitive_level** — `recall`, `comprehension`, `application`, `analysis`, or `synthesis`.
+- **cognitive_level** — `recall`, `comprehension`, `application`, `analysis`, `synthesis`,
+  or `evaluation`.
 - Quote any field containing commas: `"For $s^2+2s+4=0$, find zeta."`
 
 Example rows (header + one MC + one numerical):
 
 ```csv
 subject,topic,subtopic,skill_tags,difficulty,cognitive_level,answer_type,question_text,option_a,option_b,option_c,option_d,correct_answer,numerical_tolerance,solution,explanation,reference
-Feedback and Control Systems,Stability,Poles and Stability,stability;poles,3,recall,multiple_choice_single,A stable LTI system has all poles located where?,Right half-plane,Left half-plane,On the imaginary axis,At the origin,B,,All LHP poles give decaying exponential modes.,,
-Feedback and Control Systems,Time Response Analysis,Damping Ratio,damping-ratio,4,application,numerical_tolerance,"For $s^2+2s+4=0$, find $\zeta$.",,,,,0.5,0.01,"$\omega_n=2$, so $\zeta = 2/(2\cdot 2) = 0.5$.",,
+Feedback and Control Systems,Stability Analysis,Stability in Terms of Pole Locations,stability;poles,3,recall,multiple_choice_single,A stable LTI system has all poles located where?,Right half-plane,Left half-plane,On the imaginary axis,At the origin,B,,All LHP poles give decaying exponential modes.,,
+Feedback and Control Systems,Time Response Analysis,Transient Analysis of Second Order Systems,damping-ratio,4,application,numerical_tolerance,"For $s^2+2s+4=0$, find $\zeta$.",,,,,0.5,0.01,"$\omega_n=2$, so $\zeta = 2/(2\cdot 2) = 0.5$.",,
 ```
 
 After importing, the result panel reports how many problems were created and lists any row-level
-errors (bad topic slug, missing fields, …) — valid rows still import.
+errors (unknown subtopic, missing fields, …) — valid rows still import.
 
 ### 2.3 Bulk upload via JSON (Admin → Import)
 
@@ -202,8 +239,8 @@ Questions can only attach to existing **subtopics**, so create the topic first:
 
 1. **Add subject** (only for a brand-new subject like *Signals and Systems*): title + kebab-case
    slug.
-2. **Add topic**: choose *No parent* to create a major topic group, or pick a parent to create a
-   subtopic under it. Give it a kebab-case slug (this is what CSV imports match on), a difficulty
+2. **Add topic**: pick the **subject** it belongs to, then choose *No parent* to create a major
+   topic group, or pick a parent to create a subtopic under it. Give it a kebab-case slug (this is what CSV imports match on), a difficulty
    band (1–5, used for topic ordering/recommendations), and optional comma-separated prerequisite
    slugs (e.g. `damping-ratio` requires `second-order-systems`).
 
@@ -224,6 +261,10 @@ Archiving a problem (in the editor) removes it from practice while keeping attem
   (configurable per topic). Problem selection favors rating fit, unseen problems, weak skill tags,
   previously missed problems, and occasional review of passed topics; the learner's difficulty
   preference (easy/normal/hard/challenge) shifts the target band.
+- **Focus** (`src/services/focus.ts`, `pickFocusTarget` in `src/lib/adaptive.ts`) — an optional
+  learning goal pinned to a topic group or subtopic. It filters the candidate pool to that
+  subtree and adds a score boost to the one target subtopic, so a group is worked through in
+  order instead of all at once. Stored on the user row (`focusTopicId`).
 - **Grading** (`src/lib/grading.ts`) — numerical answers accept decimals, fractions, `pi` forms,
   scientific notation, commas, percent signs, and unit suffixes within absolute/relative tolerance.
   Text answers match normalized accepted variants. Expressions are compared after normalization

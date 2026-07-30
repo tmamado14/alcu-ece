@@ -18,7 +18,8 @@ const HEADER = [
 
 const EXAMPLES: string[][] = [
   [
-    "Feedback and Control Systems", "Time Response Analysis", "Damping Ratio",
+    "Feedback and Control Systems", "Time Response Analysis",
+    "Transient Analysis of Second Order Systems",
     "damping;second-order", "4", "comprehension",
     "multiple_choice_single",
     "A second-order system has a damping ratio $\\zeta = 0.5$. Its step response is:",
@@ -26,15 +27,16 @@ const EXAMPLES: string[][] = [
     "A", "", "", "", "Nise, Control Systems Engineering",
   ],
   [
-    "Feedback and Control Systems", "Time Response Analysis", "Settling Time",
-    "settling-time;second-order", "5", "application",
+    "Feedback and Control Systems", "Time Response Analysis",
+    "Transient Parameters of Second Order Underdamped Systems",
+    "settling-time;second-order", "6", "application",
     "numerical_tolerance",
     "A second-order system has $\\zeta = 0.6$ and $\\omega_n = 5$ rad/s. Using the 2% criterion, find the settling time in seconds.",
     "", "", "", "",
     "1.333", "0.05", "", "", "",
   ],
   [
-    "Feedback and Control Systems", "Stability", "Poles and Stability",
+    "Feedback and Control Systems", "Stability Analysis", "Stability in Terms of Pole Locations",
     "stability;poles", "3", "recall",
     "true_false",
     "A system whose poles all lie in the left half of the $s$-plane is stable.",
@@ -42,7 +44,7 @@ const EXAMPLES: string[][] = [
     "true", "", "", "", "",
   ],
   [
-    "Feedback and Control Systems", "Mathematical Modeling", "Transfer Functions",
+    "Feedback and Control Systems", "Steady-State Error", "Final Value Theorem",
     "laplace;theorems", "4", "recall",
     "text_short",
     "What theorem is used to find the steady-state value of a signal directly from its Laplace transform?",

@@ -6,6 +6,7 @@
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { useMemo } from "react";
+import { normalizeMathDelimiters } from "@/lib/latex";
 
 function renderMath(tex: string, displayMode: boolean): string {
   try {
@@ -19,7 +20,9 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-export function latexToHtml(source: string): string {
+export function latexToHtml(input: string): string {
+  // \( \) and \[ \] from older stored content are rewritten to $ and $$ first
+  const source = normalizeMathDelimiters(input);
   // split into display math, inline math, and plain segments
   const parts: string[] = [];
   const re = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;

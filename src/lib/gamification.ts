@@ -111,9 +111,10 @@ export const BADGES: BadgeDef[] = [
     description: "Master all stability subtopics.",
     icon: "🛡️",
     earned: (c) =>
-      ["poles-and-stability", "routh-hurwitz-criterion", "relative-stability"].every((s) =>
-        c.masteredTopicSlugs.has(s)
-      ),
+      [
+        "stability-concept", "poles-and-stability", "routh-hurwitz-criterion",
+        "conditional-stability", "relative-stability",
+      ].every((s) => c.masteredTopicSlugs.has(s)),
   },
   {
     code: "second-try-scholar",

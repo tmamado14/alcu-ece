@@ -14,12 +14,20 @@ interface TopicRow {
   masteryThreshold: number;
 }
 
+interface SubjectRow {
+  slug: string;
+  title: string;
+}
+
 export default function AdminTopicsPage() {
   const [topics, setTopics] = useState<TopicRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
+  const [subjects, setSubjects] = useState<SubjectRow[]>([]);
+
   // new topic form
+  const [subjectSlug, setSubjectSlug] = useState("");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [parentSlug, setParentSlug] = useState("");
@@ -41,6 +49,12 @@ export default function AdminTopicsPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/subjects").then(async (r) => {
+      if (!r.ok) return;
+      const list: SubjectRow[] = await r.json();
+      setSubjects(list);
+      setSubjectSlug((cur) => cur || list[0]?.slug || "");
+    });
   }, [load]);
 
   async function addTopic(e: React.FormEvent) {
@@ -50,7 +64,7 @@ export default function AdminTopicsPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        subjectSlug: "feedback-control-systems",
+        subjectSlug,
         parentSlug: parentSlug || null,
         slug,
         title,
@@ -80,10 +94,16 @@ export default function AdminTopicsPage() {
       return;
     }
     setSubjTitle(""); setSubjSlug("");
-    setMsg("Subject created ✓ (add topics to it via the API or extend this form)");
+    setMsg("Subject created ✓ — it is now selectable in the add-topic form");
+    fetch("/api/subjects").then(async (r) => {
+      if (r.ok) setSubjects(await r.json());
+    });
   }
 
   if (error) return <p className="error-text">{error}</p>;
+
+  // Topic rows carry the subject title, so parent options are matched by title.
+  const subjectTitle = subjects.find((s) => s.slug === subjectSlug)?.title ?? "";
 
   return (
     <div className="fade-up">
@@ -91,17 +111,27 @@ export default function AdminTopicsPage() {
       <p className="page-sub">Create subjects and topics, and review thresholds.</p>
       {msg && <p className="callout-info mt-3">{msg}</p>}
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <form onSubmit={addTopic} className="card p-5 text-sm">
-          <h2 className="section-title">Add topic (Feedback &amp; Control Systems)</h2>
+          <h2 className="section-title">Add topic</h2>
           <div className="mt-4 space-y-3">
+            <label className="block">
+              <span className="label">Subject</span>
+              <select value={subjectSlug} onChange={(e) => setSubjectSlug(e.target.value)} className="input">
+                {subjects.map((s) => (
+                  <option key={s.slug} value={s.slug}>{s.title}</option>
+                ))}
+              </select>
+            </label>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="input" />
             <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug-kebab-case" className="input font-mono" />
             <select value={parentSlug} onChange={(e) => setParentSlug(e.target.value)} className="input">
               <option value="">No parent (major topic)</option>
-              {(topics ?? []).filter((t) => !t.isLeaf).map((t) => (
-                <option key={t.id} value={t.slug}>{t.title}</option>
-              ))}
+              {(topics ?? [])
+                .filter((t) => !t.isLeaf && t.subject === subjectTitle)
+                .map((t) => (
+                  <option key={t.id} value={t.slug}>{t.title}</option>
+                ))}
             </select>
             <label className="block">
               <span className="label">Difficulty band (1–5)</span>
@@ -144,6 +174,7 @@ export default function AdminTopicsPage() {
           <table className="table">
             <thead>
               <tr>
+                <th>Subject</th>
                 <th>Title</th>
                 <th>Slug</th>
                 <th>Parent</th>
@@ -154,6 +185,7 @@ export default function AdminTopicsPage() {
             <tbody>
               {topics.map((t) => (
                 <tr key={t.id}>
+                  <td className="text-ink-faint">{t.subject}</td>
                   <td>{t.parent ? "└ " : ""}{t.title}</td>
                   <td className="font-mono text-xs">{t.slug}</td>
                   <td className="text-ink-faint">{t.parent ?? "—"}</td>

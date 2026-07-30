@@ -137,6 +137,8 @@ export interface SelectionContext {
   weakTags: Set<string>; // tags missed recently
   preference: DifficultyPreference;
   reviewTopicIds: Set<string>; // passed topics eligible for spaced review
+  /** Extra score per topic, e.g. the current focus target. topicId -> points. */
+  topicBoost?: Map<string, number>;
   rng?: () => number;
 }
 
@@ -164,8 +166,51 @@ export function scoreCandidate(p: CandidateProblem, ctx: SelectionContext): numb
   if (p.lastResult === "wrong" || p.lastResult === "gave_up") score += 20; // revisit misses
   if (p.tags.some((t) => ctx.weakTags.has(t))) score += 15; // target weak skills
   if (ctx.reviewTopicIds.has(p.topicId)) score += 10; // occasional spaced review
+  score += ctx.topicBoost?.get(p.topicId) ?? 0; // focus target
 
   return score;
+}
+
+// ---------- Focus (learning goal) ----------
+
+/** Score added to problems from the focus group's current target subtopic. */
+export const FOCUS_TARGET_BOOST = 60;
+
+export interface FocusSubtopic {
+  id: string;
+  sortOrder: number;
+  status: TopicStatus;
+  /** Ids of this subtopic's prerequisites (may point outside the focus group). */
+  prerequisiteIds: string[];
+  problemCount: number;
+}
+
+/**
+ * The one subtopic a focused learner should be working on now: the earliest in
+ * curriculum order that is not yet mastered and whose prerequisites *inside the
+ * same focus group* are already passed. Prerequisites outside the group are
+ * ignored — the learner explicitly chose this goal, so we do not block it on
+ * unrelated topics.
+ *
+ * Falls back to the earliest unmastered subtopic when nothing is unblocked, so
+ * a focus can never dead-end. Returns null once every subtopic that has
+ * problems is mastered — that is the signal the goal is complete.
+ */
+export function pickFocusTarget(subtopics: FocusSubtopic[]): FocusSubtopic | null {
+  const ordered = subtopics
+    .filter((s) => s.problemCount > 0)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const unmastered = ordered.filter((s) => s.status !== "mastered");
+  if (unmastered.length === 0) return null;
+
+  const inGroup = new Set(ordered.map((s) => s.id));
+  const cleared = new Set(
+    ordered.filter((s) => s.status === "passed" || s.status === "mastered").map((s) => s.id)
+  );
+  const unblocked = unmastered.find((s) =>
+    s.prerequisiteIds.every((id) => !inGroup.has(id) || cleared.has(id))
+  );
+  return unblocked ?? unmastered[0];
 }
 
 export function selectProblem(candidates: CandidateProblem[], ctx: SelectionContext): CandidateProblem | null {

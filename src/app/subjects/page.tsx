@@ -33,10 +33,10 @@ export default function SubjectsPage() {
     <div className="fade-up">
       <h1 className="page-title">Subjects</h1>
       <p className="page-sub">Pick a subject to see its topic map and start drilling.</p>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-8 grid gap-6 sm:grid-cols-2">
         {subjects.map((s) => (
           <Link key={s.id} href={`/subjects/${s.slug}`} className="card card-hover block p-6">
-            <h2 className="text-lg font-semibold text-ink">{s.title}</h2>
+            <h2 className="section-title">{s.title}</h2>
             <p className="mt-1 text-sm leading-relaxed text-ink-muted">{s.description}</p>
             <div className="mt-4 flex flex-wrap gap-2 text-sm">
               <span className="chip-neutral">{s.topicCount} topics</span>
@@ -45,7 +45,7 @@ export default function SubjectsPage() {
             </div>
             <div className="progress-track mt-3">
               <div
-                className="progress-fill bg-green-600"
+                className="progress-fill bg-green-700"
                 style={{ width: `${s.topicCount ? (s.passedCount / s.topicCount) * 100 : 0}%` }}
               />
             </div>
@@ -53,8 +53,8 @@ export default function SubjectsPage() {
         ))}
       </div>
       <p className="mt-8 text-sm text-ink-faint">
-        More ECE subjects (Signals and Systems, Communications, Electronics, …) can be added from the
-        admin panel — the platform is subject-agnostic.
+        More ECE subjects (Signals and Systems, Communications, Electromagnetics, …) can be added
+        from the admin panel — the platform is subject-agnostic.
       </p>
     </div>
   );
