@@ -6,9 +6,34 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { prisma } from "./db";
 
-const SECRET = process.env.SESSION_SECRET ?? "dev-secret";
+// A weak secret means anyone can forge a session cookie for any user id,
+// including an admin — so in production a real one is mandatory. Locally we
+// still fall back, to keep `npm run dev` zero-config.
+function sessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    if (!secret || secret.length < 32 || secret === "change-me-to-any-random-string") {
+      throw new Error(
+        "SESSION_SECRET must be set to a random string of at least 32 characters in production. " +
+          "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+      );
+    }
+    return secret;
+  }
+  return secret ?? "dev-secret";
+}
+
 export const SESSION_COOKIE = "ece_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+
+/** Cookie options shared by every path that issues a session. */
+export const SESSION_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: SESSION_TTL_MS / 1000,
+} as const;
 
 export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -27,7 +52,7 @@ export function verifyPassword(password: string, stored: string): boolean {
 export function createSessionToken(userId: string): string {
   const expiry = Date.now() + SESSION_TTL_MS;
   const payload = `${userId}.${expiry}`;
-  const sig = createHmac("sha256", SECRET).update(payload).digest("hex");
+  const sig = createHmac("sha256", sessionSecret()).update(payload).digest("hex");
   return `${payload}.${sig}`;
 }
 
@@ -36,7 +61,7 @@ export function verifySessionToken(token: string): string | null {
   if (parts.length !== 3) return null;
   const [userId, expiry, sig] = parts;
   const payload = `${userId}.${expiry}`;
-  const expected = createHmac("sha256", SECRET).update(payload).digest("hex");
+  const expected = createHmac("sha256", sessionSecret()).update(payload).digest("hex");
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,10 +33,14 @@ export default function LoginPage() {
   return (
     <div className="card fade-up mx-auto mt-16 max-w-sm p-8">
       <h1 className="page-title">Log in</h1>
-      <p className="page-sub">
-        Seeded accounts: <code className="border border-line bg-sunken px-1 font-mono text-xs">learner/learner123</code>{" "}
-        or <code className="border border-line bg-sunken px-1 font-mono text-xs">admin/admin123</code>
-      </p>
+      {/* Demo credentials are a local-development convenience only — never
+          rendered in a deployed build. */}
+      {process.env.NODE_ENV !== "production" && (
+        <p className="page-sub">
+          Seeded accounts: <code className="border border-line bg-sunken px-1 font-mono text-xs">learner/learner123</code>{" "}
+          or <code className="border border-line bg-sunken px-1 font-mono text-xs">admin/admin123</code>
+        </p>
+      )}
       <form onSubmit={submit} className="mt-6 space-y-4">
         <div>
           <label htmlFor="username" className="label">Username</label>
@@ -62,6 +67,9 @@ export default function LoginPage() {
           {loading ? "Logging in…" : "Log in"}
         </button>
       </form>
+      <p className="mt-4 text-center text-sm text-ink-muted">
+        Have an invite code? <Link href="/signup" className="link">Create an account</Link>
+      </p>
     </div>
   );
 }

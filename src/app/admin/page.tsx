@@ -92,6 +92,9 @@ export default function AdminPage() {
           <Link href="/admin/import" className="btn-secondary btn-sm">
             Import
           </Link>
+          <Link href="/admin/invites" className="btn-secondary btn-sm">
+            Invites
+          </Link>
           <a href="/api/admin/export?format=json" className="btn-secondary btn-sm">
             Export JSON
           </a>

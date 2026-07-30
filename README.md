@@ -250,6 +250,23 @@ When a learner clicks 🚩 on a problem, the report appears at the top of the Ad
 you can jump straight to **Edit problem**, then mark the report *resolved* or *dismissed*.
 Archiving a problem (in the editor) removes it from practice while keeping attempt history intact.
 
+### 2.7 Inviting other people (Admin → Invites)
+
+Signup is **invite-only** — there is no open registration. To give someone an account:
+
+1. Go to **Admin → Invites** and press **Create invite**. Optionally set a label (for your own
+   reference), how many people may use the code, and an expiry in days.
+2. Press **Copy link** on the new row and send it to them. The link is
+   `/signup?code=ABCD-EFGH-JKMN`, which pre-fills the code; they can also type it at `/signup`.
+3. They choose their own username and password and land on their dashboard.
+
+Each account has **its own** attempts, topic ratings, XP, streak, badges, and quests — nothing is
+shared. Codes can be revoked at any time; revoking does not affect accounts already created with
+that code. A code with several uses is handy for a study group: one link for everyone.
+
+> **Important:** do not hand out the seeded `learner` account. Two people sharing one login share a
+> single set of progress records, which corrupts both learners' adaptive ratings.
+
 ---
 
 ## 3. How the platform works (for the curious)

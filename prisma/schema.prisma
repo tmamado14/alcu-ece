@@ -13,6 +13,23 @@ datasource db {
 
 // ---------- Users ----------
 
+// Signup is invite-only: an admin issues a code, a new learner redeems it.
+// Codes can be limited by use count and/or expiry, and revoked at any time.
+model InviteCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  label       String    @default("") // free-text note, e.g. "ECE 3A study group"
+  maxUses     Int       @default(1)
+  uses        Int       @default(0)
+  expiresAt   DateTime?
+  revoked     Boolean   @default(false)
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  createdBy   User?  @relation("InviteAuthor", fields: [createdById], references: [id])
+  redeemedBy  User[] @relation("InviteRedeemer")
+}
+
 model User {
   id           String   @id @default(cuid())
   username     String   @unique
@@ -29,6 +46,11 @@ model User {
   focusTopicId String?
   focusSetAt   DateTime?
   focusTopic   Topic?    @relation("UserFocus", fields: [focusTopicId], references: [id])
+
+  // Which invite the account was created with (null for seeded accounts).
+  invitedById String?
+  invitedBy   InviteCode? @relation("InviteRedeemer", fields: [invitedById], references: [id])
+  invitesCreated InviteCode[] @relation("InviteAuthor")
 
   attempts       Attempt[]
   topicProgress  LearnerTopicProgress[]
