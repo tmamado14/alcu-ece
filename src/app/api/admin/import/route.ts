@@ -38,6 +38,42 @@ export const POST = handle(async (req: Request) => {
       const idx = header.indexOf(name);
       return idx >= 0 ? (row[idx] ?? "").trim() : "";
     };
+    // Topic slugs are globally unique, so an unscoped lookup can attach a row to
+    // a same-titled topic in the wrong subject. Both are cached: a bulk import
+    // repeats the same handful of subjects and subtopics across hundreds of rows.
+    const subjectCache = new Map<string, string | null>();
+    const topicCache = new Map<string, string | null>();
+
+    async function findSubjectId(name: string): Promise<string | null> {
+      const key = name.toLowerCase();
+      const hit = subjectCache.get(key);
+      if (hit !== undefined) return hit;
+      const subject = await prisma.subject.findFirst({
+        where: { OR: [{ slug: slugify(name) }, { title: name }] },
+        select: { id: true },
+      });
+      subjectCache.set(key, subject?.id ?? null);
+      return subject?.id ?? null;
+    }
+
+    async function findTopicId(subtopic: string, subjectId: string | null): Promise<string | null> {
+      const key = `${subjectId ?? "*"}::${subtopic.toLowerCase()}`;
+      const hit = topicCache.get(key);
+      if (hit !== undefined) return hit;
+      // Accept either the topic's slug-ified name or its exact title, since
+      // curriculum titles are long enough that their slugs are not what an
+      // author would naturally type.
+      const topic = await prisma.topic.findFirst({
+        where: {
+          OR: [{ slug: slugify(subtopic) }, { title: subtopic }],
+          ...(subjectId ? { subjectId } : {}),
+        },
+        select: { id: true },
+      });
+      topicCache.set(key, topic?.id ?? null);
+      return topic?.id ?? null;
+    }
+
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r];
       if (row.every((c) => c.trim() === "")) continue;
@@ -45,24 +81,50 @@ export const POST = handle(async (req: Request) => {
         const answerType = col("answer_type", row) || "multiple_choice_single";
         const correct = col("correct_answer", row);
         const subtopic = col("subtopic", row) || col("topic", row);
-        // Accept either the topic's slug-ified name or its exact title, since
-        // curriculum titles are long enough that their slugs are not what an
-        // author would naturally type.
-        const topic = await prisma.topic.findFirst({
-          where: { OR: [{ slug: slugify(subtopic) }, { title: subtopic }] },
-        });
-        if (!topic) {
-          errors.push(`Row ${r + 1}: unknown topic/subtopic "${subtopic}"`);
+
+        // A blank subject column stays permitted so older CSVs still import; it
+        // just falls back to the unscoped match.
+        const subjectName = col("subject", row);
+        let subjectId: string | null = null;
+        if (subjectName) {
+          subjectId = await findSubjectId(subjectName);
+          if (!subjectId) {
+            errors.push(`Row ${r + 1}: unknown subject "${subjectName}"`);
+            continue;
+          }
+        }
+
+        const topicId = await findTopicId(subtopic, subjectId);
+        if (!topicId) {
+          errors.push(
+            `Row ${r + 1}: unknown topic/subtopic "${subtopic}"` +
+              (subjectName ? ` in subject "${subjectName}"` : "")
+          );
           continue;
         }
 
         let answerData: Record<string, unknown>;
         let choices: { label: string; text: string }[] | undefined;
         if (answerType.startsWith("multiple_choice")) {
+          const letters = correct.toUpperCase().split(/[;|,\s]+/).filter(Boolean);
           answerData = { correct: correct.toUpperCase() };
           choices = (["a", "b", "c", "d"] as const)
             .map((l) => ({ label: l.toUpperCase(), text: col(`option_${l}`, row) }))
             .filter((c) => c.text !== "");
+          if (choices.length < 2) {
+            errors.push(`Row ${r + 1}: multiple choice needs at least two non-empty options`);
+            continue;
+          }
+          // Without this the row imports as an unanswerable question: no choice
+          // is flagged correct, so a learner can never get it right.
+          const missing = letters.filter((l) => !choices!.some((c) => c.label === l));
+          if (letters.length === 0 || missing.length > 0) {
+            errors.push(
+              `Row ${r + 1}: correct_answer "${correct}" does not match a non-empty option ` +
+                `(options present: ${choices.map((c) => c.label).join(", ")})`
+            );
+            continue;
+          }
         } else if (answerType === "numerical_tolerance" || answerType === "numerical_exact") {
           const tol = parseFloat(col("numerical_tolerance", row));
           answerData = {
@@ -76,7 +138,7 @@ export const POST = handle(async (req: Request) => {
         }
 
         const input: ProblemInput = ProblemBody.parse({
-          topicId: topic.id,
+          topicId,
           statement: col("question_text", row),
           answerType: answerType === "numerical_exact" ? "numerical_tolerance" : answerType,
           answerData,

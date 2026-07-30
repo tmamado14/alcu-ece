@@ -10,7 +10,8 @@ Vitest. Human-facing docs live in `README.md`; this file is the orientation for 
 - **Database:** Neon Postgres, region `ap-southeast-1` (Singapore), project endpoint
   `ep-orange-sunset-azp0oebs`. Two branches: `production` (deployed app) and `dev` (local work).
 - **Local `.env`** points at the **`dev`** branch and is fully seeded and working.
-- **Production database has tables but is probably NOT seeded** — see "Next steps".
+- **Production is seeded and serving** — admin login works, both subjects present.
+- **Vercel function region is `sin1`** (same region as the database).
 
 ### Verified working
 
@@ -23,18 +24,21 @@ Vitest. Human-facing docs live in `README.md`; this file is the orientation for 
   (a garbage session cookie returns 401 rather than throwing), `InviteCode` table exists, and the
   login page does **not** leak demo credentials.
 - `admin/admin123` and `learner/learner123` are both rejected in production — correct.
+- Production bulk import (2026-07-30): admin login OK, `/api/subjects` 158 ms, and a 500-row CSV
+  processed in **1.09 s** (~2 ms/row). Those rows all referenced an unknown subtopic, so they
+  exercised auth, CSV parsing, topic lookup and the error path but inserted nothing — the insert
+  path is heavier, extrapolating to roughly 10 ms/row.
 
 ## Next steps
 
-1. **Seed production.** Vercel's build runs `prisma migrate deploy` but never the seed, so the
-   production database likely has no subjects, problems, or admin user. Confirm by trying to log in
-   as `admin` with the `SEED_ADMIN_PASSWORD` set in Vercel. If that fails, seed it (see below).
-2. **Set the Vercel function region to Singapore (`sin1`)** — Settings → Functions → Function
-   Region, then redeploy. The default is Washington DC, which sends every query across the Pacific
-   and back to a Singapore database.
-3. **Issue invites** from Admin → Invites and share the copied links.
+1. **Issue invites** from Admin → Invites and share the copied links.
+2. **Wrap the import loop in a transaction.** It still inserts row-by-row with no transaction and no
+   dedup, so a mid-import failure leaves partial rows and re-uploading duplicates them. Much less
+   likely to bite now that imports take seconds rather than minutes, but the sharp edge is real.
+3. **Consider hard-delete for problems.** `DELETE /api/admin/problems/[id]` only sets
+   `status: "archived"`, so a mistaken bulk upload can be hidden but not removed from the web app.
 
-### Seeding production (run from a laptop, once)
+### Reseeding production (only if it ever needs rebuilding — it is already seeded)
 
 `NODE_ENV` is not `production` locally, so the two safety guards in `prisma/seed.ts` do not trip on
 their own. Both variables are required or the published `admin123` password and the shared demo
@@ -128,6 +132,9 @@ CSV path, topic tree):
 ## Conventions
 
 - Comments explain *why*, not *what*, and are used sparingly — match the surrounding density.
+- User-visible releases get an entry at the top of `RELEASES` in `src/lib/changelog.ts` (rendered at
+  `/changelog`, linked from the footer). Keep `version` in step with `package.json`, and write the
+  entries for learners and question authors rather than for developers.
 - Zod schemas validate every write path; `src/lib/schemas.ts` normalises `\( \)` / `\[ \]` math
   delimiters to `$…$` before anything reaches the database.
 - Tests cover `src/lib` only (pure functions). Service and route behaviour is checked with
