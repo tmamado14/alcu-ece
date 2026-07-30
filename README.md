@@ -336,8 +336,10 @@ cost: nothing, for a study group's worth of traffic.
 ### 4.1 Create the database
 
 1. Sign up at [neon.com](https://neon.com) and create a project.
-2. Create a second **branch** named `dev` (Branches → New branch). Production uses `main`, your
-   laptop uses `dev`, so local experiments never touch your colleagues' data.
+2. Create a second **branch** named `dev` (Branches → New branch, parent = your default branch,
+   auto-delete Never, "Branch data and schema"). The deployed app uses the default branch — Neon
+   names it `production` — and your laptop uses `dev`, so local experiments never touch your
+   colleagues' data.
 3. For each branch, open **Connect** and copy two strings:
    - the **pooled** one (host contains `-pooler`) → `DATABASE_URL`
    - the **direct/unpooled** one → `DIRECT_URL`
@@ -360,8 +362,8 @@ npm run dev
 
    | Name | Value |
    | --- | --- |
-   | `DATABASE_URL` | Neon **main** branch, **pooled** string |
-   | `DIRECT_URL` | Neon **main** branch, **direct** string |
+   | `DATABASE_URL` | Neon **production** branch, **pooled** string |
+   | `DIRECT_URL` | Neon **production** branch, **direct** string |
    | `SESSION_SECRET` | a long random string — see below |
    | `SEED_ADMIN_PASSWORD` | the admin password you want (min 8 chars) |
    | `DEEPSEEK_API_KEY` | optional, only for AI solution generation |
@@ -380,7 +382,7 @@ npm run dev
 
 ### 4.4 Load the questions into production, once
 
-From your laptop, with the **main** branch strings temporarily in `.env`:
+From your laptop, with the **production** branch strings temporarily in `.env`:
 
 ```bash
 SEED_ADMIN_PASSWORD='your-real-password' npm run db:seed
