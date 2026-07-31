@@ -185,8 +185,12 @@ Rules:
   - numerical → the number (`0.5`)
   - true/false → `true` or `false`
   - text/expression → accepted variants separated by `|` (`open loop|open-loop`)
-- **numerical_tolerance** — absolute tolerance for numerical answers; leave blank for the
-  default ±1% relative tolerance.
+- **numerical_tolerance** — tolerance for numerical answers. A bare number is an *absolute*
+  tolerance (`0.01`); a percent suffix is a *relative* one (`1%` = ±1% of the answer). Give both
+  separated by `;` (`0.01;1%`) to accept a value inside either bound. Leave blank for the default
+  ±1% relative tolerance. Prefer a relative tolerance for computed decimals so ordinary
+  3-significant-figure work passes, and an absolute one for whole-number answers (counts, bit
+  widths), where a percentage would wrongly accept neighbouring integers.
 - **skill_tags** — separated by `;` (e.g. `damping-ratio;second-order`).
 - **cognitive_level** — `recall`, `comprehension`, `application`, `analysis`, `synthesis`,
   or `evaluation`.

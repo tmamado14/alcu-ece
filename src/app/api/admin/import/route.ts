@@ -7,7 +7,7 @@
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { fail, handle, ok } from "@/lib/api";
-import { parseCsv } from "@/lib/csv";
+import { parseCsv, parseTolerance } from "@/lib/csv";
 import { ProblemBody, type ProblemInput } from "@/lib/schemas";
 
 function slugify(s: string): string {
@@ -126,10 +126,9 @@ export const POST = handle(async (req: Request) => {
             continue;
           }
         } else if (answerType === "numerical_tolerance" || answerType === "numerical_exact") {
-          const tol = parseFloat(col("numerical_tolerance", row));
           answerData = {
             value: parseFloat(correct),
-            ...(isNaN(tol) ? { toleranceRel: 0.01 } : { toleranceAbs: tol }),
+            ...parseTolerance(col("numerical_tolerance", row)),
           };
         } else if (answerType === "true_false") {
           answerData = { correct: correct.trim().toLowerCase() === "true" };

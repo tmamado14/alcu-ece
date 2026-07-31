@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { handle } from "@/lib/api";
-import { toCsv } from "@/lib/csv";
+import { formatTolerance, toCsv } from "@/lib/csv";
 
 export const GET = handle(async (req: Request) => {
   await requireAdmin();
@@ -37,7 +37,7 @@ export const GET = handle(async (req: Request) => {
         p.statement,
         choice("A"), choice("B"), choice("C"), choice("D"),
         correct,
-        p.answerType === "numerical_tolerance" ? String((data.toleranceAbs as number) ?? "") : "",
+        p.answerType === "numerical_tolerance" ? formatTolerance(data) : "",
         p.solution,
         p.explanation,
         p.reference,

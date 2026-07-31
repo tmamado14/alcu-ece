@@ -52,6 +52,38 @@ export function parseCsv(text: string): string[][] {
   return rows;
 }
 
+/**
+ * The `numerical_tolerance` column holds a bare number for an absolute
+ * tolerance and a percent-suffixed one for a relative tolerance ("1%" = ±1%).
+ * A row may carry both, separated by ";", since grading accepts a value that
+ * falls inside either bound. Shared by the seed, the importer and the exporter
+ * so a question survives an export/import round trip unchanged.
+ */
+export function parseTolerance(raw: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const part of (raw ?? "").split(";")) {
+    const s = part.trim();
+    if (s === "") continue;
+    const rel = s.endsWith("%");
+    const n = parseFloat(rel ? s.slice(0, -1) : s);
+    if (isNaN(n)) continue;
+    if (rel) out.toleranceRel = n / 100;
+    else out.toleranceAbs = n;
+  }
+  // A blank or unparsable column keeps the historical default of ±1%.
+  return Object.keys(out).length > 0 ? out : { toleranceRel: 0.01 };
+}
+
+export function formatTolerance(data: Record<string, unknown>): string {
+  const parts: string[] = [];
+  if (typeof data.toleranceAbs === "number") parts.push(String(data.toleranceAbs));
+  if (typeof data.toleranceRel === "number") {
+    // 0.02 * 100 lands on 2.0000000000000004 in binary floating point.
+    parts.push(`${parseFloat((data.toleranceRel * 100).toPrecision(12))}%`);
+  }
+  return parts.join(";");
+}
+
 export function toCsv(rows: (string | number | null | undefined)[][]): string {
   return rows
     .map((r) =>

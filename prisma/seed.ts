@@ -17,7 +17,7 @@ import { PrismaClient } from "@prisma/client";
 import { randomBytes, scryptSync } from "crypto";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { parseCsv } from "../src/lib/csv";
+import { parseCsv, parseTolerance } from "../src/lib/csv";
 import { ACHIEVEMENTS, BADGES, QUESTS } from "../src/lib/gamification";
 
 const prisma = new PrismaClient();
@@ -642,8 +642,7 @@ function answerDataFor(row: Record<string, string>, type: ProblemSeed["type"]): 
     case "numerical_tolerance": {
       const value = Number(raw);
       if (!Number.isFinite(value)) throw new Error(`numeric answer expected, got "${raw}"`);
-      const tol = parseFloat(row.numerical_tolerance);
-      return { value, ...(isNaN(tol) ? { toleranceRel: 0.01 } : { toleranceAbs: tol }) };
+      return { value, ...parseTolerance(row.numerical_tolerance) };
     }
     case "true_false":
       return { correct: raw.toLowerCase() === "true" };

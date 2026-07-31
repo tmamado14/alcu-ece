@@ -216,13 +216,22 @@ export default function ProblemEditor({ problemId }: { problemId?: string }) {
           )}
 
           {v.answerType === "numerical_tolerance" && (
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <label className="block">
                 <span className="label">Correct value</span>
                 <input
                   type="number" step="any"
                   value={String(answerData.value ?? "")}
                   onChange={(e) => set("answerData", { ...answerData, value: parseFloat(e.target.value) })}
+                  className="input py-1.5"
+                />
+              </label>
+              <label className="block">
+                <span className="label">Absolute tol (e.g. 0.01)</span>
+                <input
+                  type="number" step="any"
+                  value={String(answerData.toleranceAbs ?? "")}
+                  onChange={(e) => set("answerData", { ...answerData, toleranceAbs: e.target.value === "" ? undefined : parseFloat(e.target.value) })}
                   className="input py-1.5"
                 />
               </label>

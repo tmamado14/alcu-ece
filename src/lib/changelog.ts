@@ -23,6 +23,35 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "0.3.0",
+    date: "2026-07-31",
+    summary: "Numerical answers accept ordinary rounding, and question authors can see the tolerance again.",
+    changes: [
+      {
+        kind: "fixed",
+        text:
+          "86 numerical questions with decimal answers demanded more decimal places than the printed solution " +
+          "showed — an answer of 0.1353 had to be typed to four places to be marked correct. These now accept " +
+          "anything within 1% of the exact value, so normal three-significant-figure work passes. Whole-number " +
+          "answers such as counts and bit widths are unchanged and still require the exact figure.",
+      },
+      {
+        kind: "fixed",
+        text:
+          "The problem editor showed an empty tolerance box for every imported numerical question. The tolerance " +
+          "was stored and applied correctly all along, but it was an absolute tolerance and the editor could only " +
+          "display a relative one. Both are now shown and editable.",
+      },
+      {
+        kind: "changed",
+        text:
+          "The numerical_tolerance column in question CSVs now accepts a percentage (1%) for a relative tolerance " +
+          "alongside a plain number for an absolute one, and exports keep whichever form a question uses. " +
+          "Previously a relative tolerance was dropped on export.",
+      },
+    ],
+  },
+  {
     version: "0.2.0",
     date: "2026-07-30",
     summary: "Bulk question import now rejects broken rows instead of importing them silently.",
