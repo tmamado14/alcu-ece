@@ -4,7 +4,7 @@ ECE Mastery: an adaptive, gamified practice platform for Electronics Engineering
 subjects. Next.js 15 (App Router) + TypeScript + Tailwind 4 + Prisma + PostgreSQL + KaTeX + Zod +
 Vitest. Human-facing docs live in `README.md`; this file is the orientation for a new session.
 
-## Current state (as of 2026-07-31, v0.3.0)
+## Current state (as of 2026-08-02, v0.3.1)
 
 - **Live** at https://alcu-ece-brhq.vercel.app (Vercel Hobby).
 - **Database:** Neon Postgres, region `ap-southeast-1` (Singapore). Two branches, each with its
@@ -35,6 +35,8 @@ Vitest. Human-facing docs live in `README.md`; this file is the orientation for 
   (a garbage session cookie returns 401 rather than throwing), `InviteCode` table exists, and the
   login page does **not** leak demo credentials.
 - `admin/admin123` and `learner/learner123` are both rejected in production — correct.
+- Adaptive selection spread (2026-08-02): replayed against `dev`, subject-wide practice for a
+  learner with no history now draws from across the subject instead of the first CSV rows.
 - Production bulk import (2026-07-30): admin login OK, `/api/subjects` 158 ms, and a 500-row CSV
   processed in **1.09 s** (~2 ms/row). Those rows all referenced an unknown subtopic, so they
   exercised auth, CSV parsing, topic lookup and the error path but inserted nothing — the insert
@@ -48,6 +50,12 @@ Vitest. Human-facing docs live in `README.md`; this file is the orientation for 
    likely to bite now that imports take seconds rather than minutes, but the sharp edge is real.
 3. **Consider hard-delete for problems.** `DELETE /api/admin/problems/[id]` only sets
    `status: "archived"`, so a mistaken bulk upload can be hidden but not removed from the web app.
+4. **Click through the report topic drill-down on production.** Both `dev` users have zero
+   finalized attempts, so only its empty state was ever exercised locally; the populated view has
+   not run against real attempt rows.
+5. **Existing `LearnerTopicProgress` rows still carry the pre-v0.3.1 bias.** The tie-break fix
+   changes selection from now on, it does not rewrite ratings already earned on the Laplace topics.
+   A reset would be a throwaway script against production.
 
 ### Correcting question data already in production
 
@@ -87,6 +95,7 @@ src/lib/          pure logic, no DB: grading, adaptive engine, gamification rule
 src/services/     DB-backed: practice engine, gamification ledger, reports, focus, invites
 src/app/api/      REST endpoints — validate with zod, then call a service
 src/app/          pages (App Router)
+src/components/   shared client components (AttemptList — the attempt card list)
 prisma/           schema, migrations, seed script, question-bank CSVs
 tests/            vitest, covers the pure logic in src/lib
 ```
@@ -170,6 +179,17 @@ CSV path, topic tree):
   the whole time. Check the row in the database before concluding data was lost.
 - A throwaway script at the repo root can't be run from the scratchpad directory — `@prisma/client`
   won't resolve from outside the project. Write it to the project root and delete it afterwards.
+- **Ties in the adaptive scorer are the norm, not the exception.** `scoreCandidate` is coarse — a
+  difficulty band plus flat bonuses — so a learner with no history leaves 40–90 problems on the
+  identical top score. `Array.prototype.sort` is stable, so any `slice` off the top silently
+  returns them in `findMany` order, i.e. seed-CSV insertion order. That pinned practice to the
+  first topics of the bank until v0.3.1. Anything that ranks candidates needs an explicit
+  tie-break; don't assume the scorer discriminates.
+- Symptoms like this look like a *selection* bug but reproduce far faster as a **pool replay**:
+  score the real candidate list offline and print the top-N topic mix, rather than clicking through
+  practice sessions and guessing.
+- `dev` has the full question bank but **no learner attempts**, so anything that renders attempt
+  history only shows its empty state locally. Seed an attempt or two before trusting a walkthrough.
 
 ## Conventions
 
