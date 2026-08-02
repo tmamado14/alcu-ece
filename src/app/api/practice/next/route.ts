@@ -23,7 +23,7 @@ export const POST = handle(async (req: Request) => {
     subjectId = subject.id;
   }
 
-  const { problem, focus } = await selectNextProblem(
+  const { problem, focus, scope } = await selectNextProblem(
     user.id,
     subjectId,
     body.topicId ?? null,
@@ -34,10 +34,11 @@ export const POST = handle(async (req: Request) => {
     return ok({
       problem: null,
       focus,
+      scope,
       message: focus
         ? `No questions left in your focus (${focus.topic.title}). Clear the focus or pick another topic.`
         : "No problems available for this selection.",
     });
   }
-  return ok({ problem, focus });
+  return ok({ problem, focus, scope });
 });

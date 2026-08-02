@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Latex from "@/components/Latex";
 import { STATUS_COLORS } from "@/components/TopicBar";
+import { describeScope, type PracticeScope } from "@/lib/adaptive";
 
 interface Problem {
   id: string;
@@ -56,6 +57,7 @@ function PracticeInner() {
   const [preference, setPreference] = useState(params.get("pref") ?? "normal");
 
   const [focus, setFocus] = useState<FocusInfo | null>(null);
+  const [scope, setScope] = useState<PracticeScope | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [answer, setAnswer] = useState("");
@@ -92,6 +94,7 @@ function PracticeInner() {
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to load problem");
       const data = await res.json();
       setFocus(data.focus ?? null);
+      setScope(data.scope ?? null);
       if (!data.problem) {
         setProblem(null);
         setEmptyMessage(data.message ?? null);
@@ -249,6 +252,12 @@ function PracticeInner() {
 
   return (
     <div className="fade-up mx-auto max-w-3xl">
+      {/* a group drill spans several subtopics — say so before the learner
+          wonders why the credit landed somewhere else */}
+      {describeScope(scope) && (
+        <div className="callout-warning mb-4 text-sm">⚠️ {describeScope(scope)}</div>
+      )}
+
       {/* active learning goal: what practice is working toward right now */}
       {focus && (
         <div className="callout-info mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
@@ -279,7 +288,9 @@ function PracticeInner() {
 
       {/* header */}
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="chip-brand">{problem.topic.title}</span>
+        <span className="chip-brand" title="This subtopic gets the XP and rating change">
+          Subtopic: {problem.topic.title}
+        </span>
         <span className="chip-neutral">Difficulty {problem.difficulty}/10</span>
         <span className="chip-neutral capitalize">{problem.cognitiveLevel}</span>
         <span className="chip-neutral capitalize">{mode} mode</span>
@@ -459,7 +470,7 @@ function PracticeInner() {
 
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="chip-neutral">
-                Topic rating {outcome.newRating}{" "}
+                {problem.topic.title} rating {outcome.newRating}{" "}
                 <span className={outcome.ratingDelta >= 0 ? "text-green-700" : "text-red-700"}>
                   ({outcome.ratingDelta >= 0 ? "+" : ""}
                   {outcome.ratingDelta})

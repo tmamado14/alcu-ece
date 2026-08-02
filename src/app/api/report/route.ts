@@ -3,13 +3,7 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { fail, handle, ok } from "@/lib/api";
-
-/** Map a topic rating onto a 0–100 progress score (mastery+100 ≙ 100). */
-function progressScore(rating: number, masteryThreshold: number): number {
-  const min = 900;
-  const max = masteryThreshold + 100;
-  return Math.round(Math.min(100, Math.max(0, ((rating - min) / (max - min)) * 100)));
-}
+import { attemptTotals, progressScore } from "@/lib/report";
 
 export const GET = handle(async (req: Request) => {
   const user = await requireUser();
@@ -56,9 +50,7 @@ export const GET = handle(async (req: Request) => {
       };
     });
 
-  const correct = attempts.filter((a) => a.result === "correct_first" || a.result === "correct_second").length;
-  const incorrect = attempts.filter((a) => a.result === "wrong").length;
-  const gaveUp = attempts.filter((a) => a.result === "gave_up").length;
+  const totals = attemptTotals(attempts.map((a) => a.result));
 
   // headline rating: average progress score over topics the learner has touched
   const touched = topicRows.filter((t) => t.problemsSeen > 0);
@@ -70,14 +62,7 @@ export const GET = handle(async (req: Request) => {
   return ok({
     subject: { slug: subject.slug, title: subject.title },
     user: { name: user.name, username: user.username },
-    stats: {
-      rating: headlineRating,
-      problems: attempts.length,
-      correct,
-      incorrect,
-      gaveUp,
-      percent: attempts.length > 0 ? Math.round((correct / attempts.length) * 1000) / 10 : 0,
-    },
+    stats: { rating: headlineRating, ...totals },
     topics: topicRows,
     problems: attempts.map((a) => ({
       attemptId: a.id,

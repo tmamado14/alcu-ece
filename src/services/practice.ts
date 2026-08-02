@@ -4,11 +4,13 @@ import { prisma } from "@/lib/db";
 import {
   applyAttempt,
   DEFAULT_PROGRESS,
+  drillScope,
   selectProblem,
   type AttemptResult,
   type CandidateProblem,
   type DifficultyPreference,
   type PracticeMode,
+  type PracticeScope,
   type TopicProgressState,
   type TopicStatus,
 } from "@/lib/adaptive";
@@ -48,6 +50,8 @@ export interface NextProblemResult {
   problem: NextProblemPayload | null;
   /** The active learning goal, when one shaped this selection. */
   focus: FocusSummary | null;
+  /** What an explicit topic request actually resolved to. Null unless drilling. */
+  scope: PracticeScope | null;
 }
 
 /** @param subjectId Restrict adaptive practice to one subject, or null for all of them. */
@@ -62,19 +66,23 @@ export async function selectNextProblem(
     where: { ...(subjectId ? { subjectId } : {}), parentTopicId: { not: null } },
     select: { id: true },
   });
+  const subjectTopicIds = topics.map((t) => t.id);
 
   // An explicit topic (a drill) always wins; review mode is deliberately
   // cross-topic. Otherwise an active focus narrows practice to its subtree.
   const focus = topicId === null && mode !== "review" ? await getFocus(userId) : null;
   const topicBoost = new Map<string, number>();
+  let scope: PracticeScope | null = null;
   let leafTopicIds: string[];
   if (topicId) {
-    leafTopicIds = await resolveTopicIds(topicId);
+    const resolved = await resolveDrillScope(topicId);
+    leafTopicIds = resolved.topicIds;
+    scope = resolved.scope;
   } else if (focus) {
     leafTopicIds = await focusTopicIds(focus.topic.id);
     if (focus.target) topicBoost.set(focus.target.id, FOCUS_TARGET_BOOST);
   } else {
-    leafTopicIds = topics.map((t) => t.id);
+    leafTopicIds = subjectTopicIds;
   }
 
   const progress = await prisma.learnerTopicProgress.findMany({ where: { userId } });
@@ -83,10 +91,13 @@ export async function selectNextProblem(
     progress.filter((p) => p.status === "passed" || p.status === "needs_review").map((p) => p.topicId)
   );
 
+  // Review stays cross-topic by design, but it still honours a subject request:
+  // subjectTopicIds is every leaf topic when no subject was named.
   const where =
     mode === "review"
       ? {
           status: "active",
+          topicId: { in: subjectTopicIds },
           OR: [
             { attempts: { some: { userId, result: { in: ["wrong", "gave_up"] } } } },
             { bookmarks: { some: { userId, kind: "needs_review" } } },
@@ -98,7 +109,13 @@ export async function selectNextProblem(
     where,
     include: {
       tags: true,
-      attempts: { where: { userId }, orderBy: { createdAt: "desc" }, take: 1 },
+      // Finalized attempts only: a pending row is a question the learner loaded
+      // and walked away from, and counting it as "seen" retired it for good.
+      attempts: {
+        where: { userId, result: { not: PENDING } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
     },
   });
 
@@ -117,7 +134,7 @@ export async function selectNextProblem(
     difficulty: p.difficulty,
     tags: p.tags.map((t) => t.tag),
     seen: p.attempts.length > 0,
-    lastResult: p.attempts[0]?.result === PENDING ? undefined : (p.attempts[0]?.result as AttemptResult | undefined),
+    lastResult: p.attempts[0]?.result as AttemptResult | undefined,
   }));
 
   // In drill/adaptive modes prefer unseen; if everything seen, allow repeats of misses.
@@ -134,7 +151,7 @@ export async function selectNextProblem(
     reviewTopicIds,
     topicBoost,
   });
-  if (!chosen) return { problem: null, focus };
+  if (!chosen) return { problem: null, focus, scope };
 
   const full = await prisma.problem.findUniqueOrThrow({
     where: { id: chosen.id },
@@ -164,13 +181,24 @@ export async function selectNextProblem(
       hasSolution: full.solution.trim() !== "",
     },
     focus,
+    scope,
   };
 }
 
-/** A parent topic id resolves to all of its leaf children; a leaf resolves to itself. */
-async function resolveTopicIds(topicId: string): Promise<string[]> {
-  const children = await prisma.topic.findMany({ where: { parentTopicId: topicId }, select: { id: true } });
-  return children.length > 0 ? children.map((c) => c.id) : [topicId];
+/** A group topic resolves to all of its children; a leaf resolves to itself alone. */
+async function resolveDrillScope(
+  topicId: string
+): Promise<{ topicIds: string[]; scope: PracticeScope | null }> {
+  const topic = await prisma.topic.findUnique({
+    where: { id: topicId },
+    select: { id: true, title: true },
+  });
+  if (!topic) return { topicIds: [topicId], scope: null };
+  const children = await prisma.topic.findMany({
+    where: { parentTopicId: topicId },
+    select: { id: true },
+  });
+  return drillScope(topic, children.map((c) => c.id));
 }
 
 export interface SubmitOutcome {

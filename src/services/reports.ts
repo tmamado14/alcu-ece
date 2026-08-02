@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { levelForXp } from "@/lib/gamification";
+import { attemptTotals, progressScore, type AttemptTotals } from "@/lib/report";
 
 export async function generateLearnerReport(userId: string) {
   const [user, attempts, progress, xpEvents] = await Promise.all([
@@ -117,6 +118,87 @@ export async function generateLearnerReport(userId: string) {
       at: a.createdAt.toISOString(),
     })),
     recentXp: xpEvents.map((e) => ({ amount: e.amount, source: e.source, at: e.createdAt.toISOString() })),
+  };
+}
+
+export interface TopicReport {
+  topic: { id: string; title: string; group: string; slug: string };
+  stats: AttemptTotals;
+  /** Null when the learner has never finished a question in this topic. */
+  progress: {
+    rating: number;
+    score: number;
+    status: string;
+    confidence: number;
+    problemsSeen: number;
+    correctFirstTry: number;
+    correctSecondTry: number;
+    wrong: number;
+    gaveUp: number;
+    streak: number;
+    lastPracticedAt: string | null;
+  } | null;
+  problems: {
+    attemptId: string;
+    problemId: string;
+    statement: string;
+    difficulty: number;
+    result: string;
+    at: string;
+  }[];
+}
+
+/** One topic's slice of the report: what the learner answered there, and how it went. */
+export async function getTopicReport(userId: string, topicId: string): Promise<TopicReport | null> {
+  const topic = await prisma.topic.findUnique({
+    where: { id: topicId },
+    include: { parentTopic: { select: { title: true } } },
+  });
+  if (!topic) return null;
+
+  const [progress, attempts] = await Promise.all([
+    prisma.learnerTopicProgress.findUnique({
+      where: { userId_topicId: { userId, topicId } },
+    }),
+    prisma.attempt.findMany({
+      where: { userId, result: { not: "pending" }, problem: { topicId } },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      include: { problem: { select: { id: true, statement: true, difficulty: true } } },
+    }),
+  ]);
+
+  return {
+    topic: {
+      id: topic.id,
+      title: topic.title,
+      group: topic.parentTopic?.title ?? "",
+      slug: topic.slug,
+    },
+    stats: attemptTotals(attempts.map((a) => a.result)),
+    progress: progress
+      ? {
+          rating: progress.rating,
+          score: progressScore(progress.rating, topic.masteryThreshold),
+          status: progress.status,
+          confidence: progress.confidence,
+          problemsSeen: progress.problemsSeen,
+          correctFirstTry: progress.correctFirstTry,
+          correctSecondTry: progress.correctSecondTry,
+          wrong: progress.wrong,
+          gaveUp: progress.gaveUp,
+          streak: progress.streak,
+          lastPracticedAt: progress.lastPracticedAt?.toISOString() ?? null,
+        }
+      : null,
+    problems: attempts.map((a) => ({
+      attemptId: a.id,
+      problemId: a.problem.id,
+      statement: a.problem.statement,
+      difficulty: a.problem.difficulty,
+      result: a.result,
+      at: a.createdAt.toISOString(),
+    })),
   };
 }
 

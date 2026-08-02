@@ -3,7 +3,9 @@ import {
   applyAttempt,
   computeStatus,
   DEFAULT_PROGRESS,
+  describeScope,
   difficultyToRating,
+  drillScope,
   expectedScore,
   flagNeedsReview,
   FOCUS_TARGET_BOOST,
@@ -173,6 +175,97 @@ describe("problem selection", () => {
       scoreCandidate(unseenElsewhere, focusCtx)
     );
     expect(selectProblem([unseenElsewhere, seenInTarget], focusCtx)!.id).toBe("in-target");
+  });
+});
+
+describe("selection tie-breaking", () => {
+  // Deterministic PRNG so the assertions below are not flaky.
+  function seeded(seed: number): () => number {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // Ten identical problems in each of four topics: every candidate scores the
+  // same, so only the tie-break decides what practice serves.
+  const tied: CandidateProblem[] = ["a", "b", "c", "d"].flatMap((topicId) =>
+    Array.from({ length: 10 }, (_, i) => ({
+      id: `${topicId}${i}`,
+      topicId,
+      difficulty: 3,
+      tags: [],
+      seen: false,
+    }))
+  );
+
+  const ctxFor = (rng: () => number): SelectionContext => ({
+    topicRatings: new Map(),
+    weakTags: new Set(),
+    preference: "normal",
+    reviewTopicIds: new Set(),
+    rng,
+  });
+
+  it("does not lock onto the topics that happen to come first in the input", () => {
+    const rng = seeded(7);
+    const picked = new Set<string>();
+    for (let i = 0; i < 200; i++) picked.add(selectProblem(tied, ctxFor(rng))!.topicId);
+    expect([...picked].sort()).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("spreads roughly evenly over tied topics rather than favouring input order", () => {
+    const rng = seeded(11);
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 400; i++) {
+      const t = selectProblem(tied, ctxFor(rng))!.topicId;
+      counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    for (const topicId of ["a", "b", "c", "d"]) {
+      expect(counts.get(topicId) ?? 0).toBeGreaterThan(40); // 100 expected each
+    }
+  });
+
+  it("still puts the better-scoring candidate first", () => {
+    const rng = seeded(3);
+    const best = { id: "best", topicId: "z", difficulty: 3, tags: [], seen: false };
+    // One clear winner plus five tied also-rans: the winner must never be
+    // squeezed out of the pool by the shuffle.
+    const field = [...tied.slice(0, 5).map((c) => ({ ...c, seen: true })), best];
+    for (let i = 0; i < 50; i++) {
+      expect(scoreCandidate(best, ctxFor(rng))).toBeGreaterThan(scoreCandidate(field[0], ctxFor(rng)));
+      expect(selectProblem(field, ctxFor(() => 0))!.id).toBe("best");
+    }
+  });
+});
+
+describe("drillScope", () => {
+  const group = { id: "g", title: "Laplace and Inverse Laplace Transform" };
+
+  it("keeps a leaf drill on that leaf alone", () => {
+    const { topicIds, scope } = drillScope({ id: "leaf", title: "Laplace Transforms" }, []);
+    expect(topicIds).toEqual(["leaf"]);
+    expect(scope.isGroup).toBe(false);
+    expect(scope.subtopicCount).toBe(1);
+  });
+
+  it("expands a group to its children and records that it did", () => {
+    const { topicIds, scope } = drillScope(group, ["c1", "c2", "c3"]);
+    expect(topicIds).toEqual(["c1", "c2", "c3"]);
+    expect(scope.isGroup).toBe(true);
+    expect(scope.subtopicCount).toBe(3);
+    expect(topicIds).not.toContain("g"); // the group itself holds no problems
+  });
+
+  it("warns the learner only when the drill spans subtopics", () => {
+    expect(describeScope(drillScope({ id: "leaf", title: "Laplace Transforms" }, []).scope)).toBeNull();
+    expect(describeScope(null)).toBeNull();
+    const note = describeScope(drillScope(group, ["c1", "c2", "c3"]).scope)!;
+    expect(note).toContain(group.title);
+    expect(note).toContain("3");
   });
 });
 

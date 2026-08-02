@@ -23,6 +23,48 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "0.3.1",
+    date: "2026-08-02",
+    summary: "Adaptive practice now draws from the whole subject, and the report lets you look into a topic.",
+    changes: [
+      {
+        kind: "fixed",
+        text:
+          "Adaptive practice kept handing out questions from the first few topics of a subject — in Feedback and " +
+          "Control Systems that meant the Laplace transform topics, over and over, no matter how much of the rest " +
+          "of the syllabus was untouched. When several questions suited you equally well, the app was quietly " +
+          "picking whichever one happened to be first in the question bank instead of choosing between them. " +
+          "Practice now spreads across every topic in the subject.",
+      },
+      {
+        kind: "fixed",
+        text:
+          "A question you opened but left without answering was treated as already done and never offered again. " +
+          "Those questions are back in circulation.",
+      },
+      {
+        kind: "fixed",
+        text:
+          "Review sessions started from a subject could pull questions from your other subject as well. A review " +
+          "now stays inside the subject you chose, while still ranging across its topics.",
+      },
+      {
+        kind: "added",
+        text:
+          "Clicking a topic in your report now opens that topic: the questions you have answered under it, how " +
+          "many you got right, and your rating, streak and progress for it. Previously the same click dropped you " +
+          "straight into a practice session — starting practice is now a separate, deliberate button.",
+      },
+      {
+        kind: "changed",
+        text:
+          "Practice sessions show which subtopic the current question belongs to, and say so up front when a " +
+          "session covers a whole group of subtopics rather than a single one, so it is clear where your points " +
+          "are going.",
+      },
+    ],
+  },
+  {
     version: "0.3.0",
     date: "2026-07-31",
     summary: "Numerical answers accept ordinary rounding, and question authors can see the tolerance again.",

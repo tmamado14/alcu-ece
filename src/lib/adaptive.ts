@@ -171,6 +171,38 @@ export function scoreCandidate(p: CandidateProblem, ctx: SelectionContext): numb
   return score;
 }
 
+// ---------- Practice scope ----------
+
+/** What a drill actually draws from, so the learner is never guessing. */
+export interface PracticeScope {
+  topic: { id: string; title: string };
+  /** True when the requested topic is a group and problems span its subtopics. */
+  isGroup: boolean;
+  /** Number of leaf topics in the pool: the group's children, or 1 for a leaf. */
+  subtopicCount: number;
+}
+
+/**
+ * Leaf topics a drill draws from. A group expands to its children — that is
+ * intentional, but it has to be announced, so the scope travels with it.
+ */
+export function drillScope(
+  topic: { id: string; title: string },
+  childIds: string[]
+): { topicIds: string[]; scope: PracticeScope } {
+  const isGroup = childIds.length > 0;
+  return {
+    topicIds: isGroup ? childIds : [topic.id],
+    scope: { topic, isGroup, subtopicCount: isGroup ? childIds.length : 1 },
+  };
+}
+
+/** Learner-facing warning when a drill covers more than the row that was clicked. */
+export function describeScope(scope: PracticeScope | null): string | null {
+  if (!scope?.isGroup) return null;
+  return `“${scope.topic.title}” is a topic group — questions come from all ${scope.subtopicCount} of its subtopics, and each answer credits the subtopic it belongs to.`;
+}
+
 // ---------- Focus (learning goal) ----------
 
 /** Score added to problems from the focus group's current target subtopic. */
@@ -213,13 +245,21 @@ export function pickFocusTarget(subtopics: FocusSubtopic[]): FocusSubtopic | nul
   return unblocked ?? unmastered[0];
 }
 
+/** How many of the best-fitting candidates the final weighted draw chooses from. */
+export const TOP_POOL_SIZE = 5;
+
 export function selectProblem(candidates: CandidateProblem[], ctx: SelectionContext): CandidateProblem | null {
   if (candidates.length === 0) return null;
   const rng = ctx.rng ?? Math.random;
+  // Ties are broken randomly, not by input order. Scores are coarse — a handful
+  // of difficulty bands plus flat bonuses — so dozens of candidates routinely
+  // share the top score. A plain sort is stable, which left the top pool in
+  // database row order and served every learner the same first few topics of
+  // the curriculum over and over.
   const scored = candidates
-    .map((p) => ({ p, score: scoreCandidate(p, ctx) }))
-    .sort((a, b) => b.score - a.score);
-  const pool = scored.slice(0, Math.min(5, scored.length));
+    .map((p) => ({ p, score: scoreCandidate(p, ctx), jitter: rng() }))
+    .sort((a, b) => b.score - a.score || a.jitter - b.jitter);
+  const pool = scored.slice(0, Math.min(TOP_POOL_SIZE, scored.length));
   const total = pool.reduce((s, x) => s + x.score + 1, 0);
   let r = rng() * total;
   for (const x of pool) {
