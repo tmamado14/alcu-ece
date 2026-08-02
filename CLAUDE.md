@@ -4,14 +4,23 @@ ECE Mastery: an adaptive, gamified practice platform for Electronics Engineering
 subjects. Next.js 15 (App Router) + TypeScript + Tailwind 4 + Prisma + PostgreSQL + KaTeX + Zod +
 Vitest. Human-facing docs live in `README.md`; this file is the orientation for a new session.
 
-## Current state (as of 2026-07-30)
+## Current state (as of 2026-07-31, v0.3.0)
 
 - **Live** at https://alcu-ece-brhq.vercel.app (Vercel Hobby).
-- **Database:** Neon Postgres, region `ap-southeast-1` (Singapore), project endpoint
-  `ep-orange-sunset-azp0oebs`. Two branches: `production` (deployed app) and `dev` (local work).
+- **Database:** Neon Postgres, region `ap-southeast-1` (Singapore). Two branches, each with its
+  own endpoint — check which one `.env` holds before running anything destructive:
+
+  | Branch | Endpoint | Used by |
+  | --- | --- | --- |
+  | `dev` | `ep-orange-sunset-azp0oebs` | local work; this is what `.env` normally holds |
+  | `production` | `ep-soft-lab-azt8pcox` | the deployed app |
+
 - **Local `.env`** points at the **`dev`** branch and is fully seeded and working.
 - **Production is seeded and serving** — admin login works, both subjects present.
 - **Vercel function region is `sin1`** (same region as the database).
+- The repo is **not linked to the Vercel CLI** (no `.vercel/project.json`, `vercel` not installed),
+  so production credentials cannot be pulled automatically — they have to be pasted into `.env` by
+  hand and then swapped back.
 
 ### Verified working
 
@@ -20,6 +29,8 @@ Vitest. Human-facing docs live in `README.md`; this file is the orientation for 
 - 14-check smoke test against Postgres passed: login, subject listing, DE topic map (74 subtopics),
   adaptive practice, subject-scoped practice, answer submission, invite issue/redeem/reuse-refusal,
   new-account isolation, report page.
+- Numerical tolerances (2026-07-31, applied to **both** branches): 292 numerical questions, of
+  which 206 carry an absolute tolerance and 86 a 1% relative one, and none are missing a tolerance.
 - Production probes: migrations ran (bogus login returns 401, not a 500), `SESSION_SECRET` is valid
   (a garbage session cookie returns 401 rather than throwing), `InviteCode` table exists, and the
   login page does **not** leak demo credentials.
@@ -37,6 +48,22 @@ Vitest. Human-facing docs live in `README.md`; this file is the orientation for 
    likely to bite now that imports take seconds rather than minutes, but the sharp edge is real.
 3. **Consider hard-delete for problems.** `DELETE /api/admin/problems/[id]` only sets
    `status: "archived"`, so a mistaken bulk upload can be hidden but not removed from the web app.
+
+### Correcting question data already in production
+
+There is **no re-import path**: the importer has no dedup, so uploading the exported CSV into a
+database that already holds those rows doubles the bank rather than updating it, and the seed skips
+subjects that already exist. Fix live data with a **throwaway script that updates matching rows**,
+run against the production connection string, then delete it. What made that safe in practice:
+
+- Have the script print the database host it connected to, and make a **dry run the default** with
+  writes behind `--apply`.
+- Give it a target count that differs per branch (dev had already been corrected, so it reported 0
+  while production reported 86) — that is what proves which database is on the other end, not the
+  contents of `.env`.
+- Regenerate the seed CSVs from the database afterwards and commit them, so the git backup matches.
+- Auto mode's permission classifier blocks the bulk write; the user runs the `--apply` line with a
+  leading `!` and pastes the output back.
 
 ### Reseeding production (only if it ever needs rebuilding — it is already seeded)
 
@@ -86,6 +113,15 @@ CSV path, topic tree):
 - **Difficulty must be on a 1–10 scale**, because `difficultyToRating` maps it onto 900–1500. The
   original Digital Electronics CSV used a 1–5 ladder and was rescaled ×2 on import; a fresh 1–5
   file would make every question read as trivially easy and cap topic ratings early.
+- **Numerical tolerance** lives in the `numerical_tolerance` CSV column: a bare number is absolute
+  (`0.01`), a percent suffix is relative (`1%`), both may be given separated by `;`, and a blank
+  means the default ±1% relative. Grading accepts a value inside *either* bound. The seed, the
+  importer and the exporter all go through `parseTolerance` / `formatTolerance` in `src/lib/csv.ts`
+  — put any change there rather than in one of the three call sites.
+- Pick the tolerance form by the **answer**, not by habit: decimals want a relative tolerance so
+  ordinary 3-significant-figure work passes, whole-number answers (counts, bit widths, pole counts)
+  want a tight or zero absolute one, because 1% of 65536 would accept anything within ±655. A
+  batch of decimal answers was too tight until 2026-07-31 for exactly this reason.
 - Seeding is **additive by default**: existing subjects and all user data are left untouched, and
   only subjects missing from the database get created. `SEED_RESET=1` forces a full wipe.
 - `prisma/seed-questions.csv` was regenerated from the database so it includes 215 questions that
@@ -128,6 +164,12 @@ CSV path, topic tree):
 - Editing `.env` in the IDE: changes may not be saved when you read the file. Verify structure
   before acting on it.
 - The subject topic-map API returns groups with a **`children`** array, not `subtopics`.
+- **A blank field in the admin editor is not proof the data is missing.** The numerical editor read
+  only `toleranceRel` while every imported question stored `toleranceAbs`, so 292 questions looked
+  like their tolerance had been stripped on upload when it was stored and being applied correctly
+  the whole time. Check the row in the database before concluding data was lost.
+- A throwaway script at the repo root can't be run from the scratchpad directory — `@prisma/client`
+  won't resolve from outside the project. Write it to the project root and delete it afterwards.
 
 ## Conventions
 
